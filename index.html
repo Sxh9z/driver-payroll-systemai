@@ -1437,252 +1437,131 @@
           statusMsg.textContent = 'تم تصدير الجدول إلى ملف Excel بنجاح.';
         }
 
-        // تحميل مكتبات PDF احتياطيًا عند تعذر تحميل روابط CDN الأساسية
-        function loadExternalScript(src) {
-          return new Promise(function (resolve, reject) {
-            const script = document.createElement('script');
-            script.src = src;
-            script.onload = resolve;
-            script.onerror = function () {
-              reject(new Error('تعذر تحميل: ' + src));
-            };
-            document.head.appendChild(script);
-          });
+        // تصدير PDF بالطباعة الأصلية للمتصفح بدل تصوير الجدول؛ يحافظ على العربية ودقة النص
+        function escapePdfHtml(value) {
+          return String(value == null ? '' : value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
         }
 
-        async function ensurePdfLibraries() {
-          if (typeof window.html2canvas !== 'function') {
-            try {
-              await loadExternalScript('https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js');
-            } catch (error) {
-              if (typeof window.html2canvas !== 'function') throw error;
-            }
+        function exportToPdf() {
+          const printWindow = window.open('', '_blank');
+          if (!printWindow) {
+            statusMsg.textContent = 'يرجى السماح بالنوافذ المنبثقة لهذا الموقع ثم إعادة تصدير PDF.';
+            return;
           }
-          if (!window.jspdf || typeof window.jspdf.jsPDF !== 'function') {
-            try {
-              await loadExternalScript('https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js');
-            } catch (error) {
-              if (!window.jspdf || typeof window.jspdf.jsPDF !== 'function') throw error;
-            }
-          }
-          if (typeof window.html2canvas !== 'function' || !window.jspdf || typeof window.jspdf.jsPDF !== 'function') {
-            throw new Error('مكتبات PDF غير متاحة');
-          }
-        }
 
-        async function exportToPdf() {
-          const tableEl = document.getElementById('salary-table');
-          if (!tableEl) return;
-
+          closeDatePicker();
           btnExportPdf.disabled = true;
-          statusMsg.textContent = 'جاري تجهيز ملف PDF...';
-
-          const noPrintEls = Array.from(tableEl.querySelectorAll('.no-print'));
+          statusMsg.textContent = 'جاري تجهيز نسخة PDF المطابقة لجدول Excel...';
 
           try {
-            await ensurePdfLibraries();
-            closeDatePicker();
-
-            if (document.fonts && document.fonts.ready) {
-              await document.fonts.ready;
-            }
-
-            // إخفاء جميع عناصر التحكم التفاعلية (.no-print: أزرار توحيد، تعبئة تسلسلية، وخيار غياب) مؤقتًا قبل الالتقاط
-            noPrintEls.forEach(function (el) {
-              el.style.display = 'none';
-            });
-
-            const origControls = Array.from(tableEl.querySelectorAll('input, select'));
-            const controlValues = origControls.map(function (el) {
-              if (el.tagName === 'SELECT') {
-                return el.options[el.selectedIndex] ? el.options[el.selectedIndex].textContent : '';
-              }
-              return el.value;
-            });
-
-            // تقليل دقة الالتقاط تلقائيًا لتجنب تجاوز حدود Canvas خصوصًا على الهواتف
-            const tableWidth = Math.max(tableEl.scrollWidth, tableEl.offsetWidth, 1);
-            const tableHeight = Math.max(tableEl.scrollHeight, tableEl.offsetHeight, 1);
-            const maxCanvasPixels = 10000000;
-            const safeScale = Math.min(2, Math.sqrt(maxCanvasPixels / (tableWidth * tableHeight)));
-            const captureScale = Math.max(0.5, safeScale);
-
-            const canvas = await window.html2canvas(tableEl, {
-              scale: captureScale,
-              width: tableWidth,
-              height: tableHeight,
-              windowWidth: Math.max(document.documentElement.clientWidth, tableWidth),
-              windowHeight: Math.max(document.documentElement.clientHeight, tableHeight),
-              useCORS: true,
-              backgroundColor: '#ffffff',
-              scrollX: 0,
-              scrollY: 0,
-              onclone: function (clonedDoc) {
-                const clonedTable = clonedDoc.getElementById('salary-table');
-                if (!clonedTable) return;
-
-                // التأكد من عدم اقتصاص الجدول أفقياً على الشاشات الصغيرة
-                // فك قيود الحاويات المتداخلة؛ الجدول داخل overflow-x-auto وmain محدود العرض
-                let ancestor = clonedTable.parentElement;
-                while (ancestor && ancestor !== clonedDoc.body) {
-                  ancestor.style.overflow = 'visible';
-                  ancestor.style.width = tableWidth + 'px';
-                  ancestor.style.maxWidth = 'none';
-                  ancestor.style.minWidth = tableWidth + 'px';
-                  ancestor.style.maxHeight = 'none';
-                  ancestor.style.height = 'auto';
-                  ancestor.style.display = 'block';
-                  ancestor.style.transform = 'none';
-                  ancestor = ancestor.parentElement;
-                }
-                clonedDoc.body.style.width = tableWidth + 'px';
-                clonedDoc.body.style.minWidth = tableWidth + 'px';
-                clonedDoc.body.style.overflow = 'visible';
-                clonedDoc.documentElement.style.width = tableWidth + 'px';
-                clonedDoc.documentElement.style.overflow = 'visible';
-
-                // تثبيت حدود الخلايا الداكنة الواضحة داخل نسخة الـ PDF
-                clonedTable.style.borderCollapse = 'collapse';
-                clonedTable.style.tableLayout = 'fixed';
-                clonedTable.style.width = tableWidth + 'px';
-                clonedTable.style.minWidth = tableWidth + 'px';
-                clonedTable.style.maxWidth = 'none';
-                clonedTable.style.display = 'table';
-                clonedTable.style.visibility = 'visible';
-                clonedTable.style.opacity = '1';
-                clonedTable.style.fontFamily = '"Tajawal", Arial, sans-serif';
-
-                // منع تداخل خلفية أي صف <tr> مع خلايا rowspan (في الرأس والجسم)
-                const allRows = clonedTable.querySelectorAll('thead tr, tbody tr');
-                allRows.forEach(function (tr) {
-                  tr.style.backgroundColor = 'transparent';
-                });
-
-                // تعزيز وضوح نص صف العناوين الداكن في الصورة الملتقطة
-                const headerCells = clonedTable.querySelectorAll('thead th');
-                headerCells.forEach(function (th) {
-                  th.style.backgroundColor = '#1e293b';
-                  th.style.color = '#ffffff';
-                  th.style.fontWeight = '700';
-                  th.style.opacity = '1';
-                  th.style.border = '1px solid #4b5563';
-                  th.style.paddingTop = '9px';
-                  th.style.paddingBottom = '9px';
-                  th.style.paddingLeft = '6px';
-                  th.style.paddingRight = '6px';
-                  th.style.fontSize = '15px';
-                  th.style.lineHeight = '1.25';
-                });
-
-                // زيادة المساحة الرأسية للصفوف وتثبيت الحدود لكل خلايا الجسم (بما فيها خلايا rowspan)
-                const bodyCells = clonedTable.querySelectorAll('tbody td');
-                bodyCells.forEach(function (td) {
-                  td.style.border = '1px solid #4b5563';
-                  td.style.borderRadius = '0';
-                  td.style.paddingTop = '9px';
-                  td.style.paddingBottom = '9px';
-                  td.style.paddingLeft = '5px';
-                  td.style.paddingRight = '5px';
-                  td.style.fontSize = '14px';
-                  td.style.lineHeight = '1.25';
-                  if (td.hasAttribute('rowspan')) {
-                    td.style.backgroundColor = 'transparent';
-                  }
-                  if (td.classList.contains('absent-merged-cell')) {
-                    td.style.backgroundColor = '#fca5a5';
-                  }
-                });
-
-                // استبدال حقول الإدخال والقوائم المنسدلة بنصوص ثابتة واضحة أثناء التصوير
-                const clonedControls = Array.from(clonedTable.querySelectorAll('input, select'));
-                clonedControls.forEach(function (el, idx) {
-                  if (el.type === 'date') {
-                    el.style.display = 'none';
-                    return;
-                  }
-                  if (el.type === 'checkbox') {
-                    return;
-                  }
-                  const span = clonedDoc.createElement('span');
-                  span.textContent = controlValues[idx] || '';
-                  if (el.dir) span.dir = el.dir;
-                  span.className = el.className;
-                  span.style.display = 'inline-block';
-                  span.style.minHeight = '24px';
-                  span.style.lineHeight = '24px';
-                  span.style.borderColor = 'transparent';
-                  span.style.backgroundColor = 'transparent';
-                  el.parentNode.replaceChild(span, el);
-                });
-              },
-            });
-
-            // إعادة إظهار عناصر .no-print فورًا بعد الالتقاط
-            noPrintEls.forEach(function (el) {
-              el.style.display = '';
-            });
-
-            if (!canvas.width || !canvas.height) {
-              throw new Error('تعذر إنشاء صورة الجدول؛ حاول إعادة التصدير.');
-            }
-            const ctx = canvas.getContext('2d');
-            let hasVisibleContent = false;
-            if (ctx) {
-              for (let y = 0; y < 5 && !hasVisibleContent; y++) {
-                for (let x = 0; x < 5 && !hasVisibleContent; x++) {
-                  const px = Math.min(canvas.width - 1, Math.floor((x + 0.5) * canvas.width / 5));
-                  const py = Math.min(canvas.height - 1, Math.floor((y + 0.5) * canvas.height / 5));
-                  const pixel = ctx.getImageData(px, py, 1, 1).data;
-                  if (pixel[0] < 245 || pixel[1] < 245 || pixel[2] < 245) hasVisibleContent = true;
-                }
-              }
-            }
-            if (!hasVisibleContent) {
-              throw new Error('تم التقاط صفحة فارغة بدل الجدول. أعد المحاولة بعد تحديث الصفحة.');
-            }
-            // JPEG أكثر تحمّلًا للصور الكبيرة ويمنع أخطاء تحليل PNG داخل jsPDF
-            const imgData = canvas.toDataURL('image/jpeg', 0.92);
-            const { jsPDF } = window.jspdf;
-            const pdf = new jsPDF({
-              orientation: 'landscape',
-              unit: 'mm',
-              format: 'a4',
-            });
-
-            const pageWidth = pdf.internal.pageSize.getWidth(); // 297mm
-            const pageHeight = pdf.internal.pageSize.getHeight(); // 210mm
-            const margin = 6;
-            const maxWidth = pageWidth - margin * 2;
-            const maxHeight = pageHeight - margin * 2;
-            const imgAspectRatio = canvas.width / canvas.height;
-
-            let renderWidth = maxWidth;
-            let renderHeight = renderWidth / imgAspectRatio;
-
-            if (renderHeight > maxHeight) {
-              renderHeight = maxHeight;
-              renderWidth = renderHeight * imgAspectRatio;
-            }
-
-            const offsetX = (pageWidth - renderWidth) / 2;
-            const offsetY = (pageHeight - renderHeight) / 2;
-
-            pdf.addImage(imgData, 'JPEG', offsetX, offsetY, renderWidth, renderHeight, undefined, 'FAST');
-
+            const branchVal = branchInput ? branchInput.value.trim() : '';
             const nameVal = nameInput ? nameInput.value.trim() : '';
-            const repName = nameVal
-              ? nameVal.replace(/[\\/:*?"<>|]/g, '').trim().replace(/\s+/g, '_')
-              : 'مندوب';
-            const dateTag = new Date().toISOString().slice(0, 10);
-            pdf.save('الراتب_الأسبوعي_' + repName + '_' + dateTag + '.pdf');
-            statusMsg.textContent = 'تم تصدير الجدول إلى ملف PDF بنجاح.';
+            const weeklyAmount = Number((document.getElementById('total-amount-value') || document.getElementById('total-amount')).textContent) || 0;
+            const weeklyOrders = Number(document.getElementById('total-orders').textContent) || 0;
+            const weeklyReturns = Number(document.getElementById('total-returns').textContent) || 0;
+            const weeklyCounted = Number(document.getElementById('total-counted-orders').textContent) || 0;
+            const weeklySurplus = Number(document.getElementById('total-surplus').textContent) || 0;
+            const columnWidths = [14, 16, 10, 11, 16, 13, 13, 10, 10, 14, 10];
+            const totalWidth = columnWidths.reduce((a, b) => a + b, 0);
+            const colgroup = columnWidths.map(w => '<col style="width:' + (w / totalWidth * 100).toFixed(4) + '%">').join('');
+
+            let bodyRows = '';
+            for (let i = 0; i < DAYS_COUNT; i++) {
+              const r = rows[i];
+              const rowNum = i + 1;
+              const dateText = escapePdfHtml(formatArabicDate(r.dateInput.value));
+              if (r.absentCheckbox.checked) {
+                bodyRows += '<tr class="absent-row">';
+                if (i === 0) bodyRows += '<td class="merged-person" rowspan="8">' + escapePdfHtml(branchVal) + '</td><td class="merged-person" rowspan="8">' + escapePdfHtml(nameVal) + '</td>';
+                bodyRows += '<td colspan="2" class="absent-cell">غياب</td><td>' + dateText + '</td><td colspan="6" class="absent-cell">غياب</td></tr>';
+              } else {
+                const orders = r.ordersInput.value === '' ? 0 : Number(r.ordersInput.value) || 0;
+                const returns = r.returnsInput.value === '' ? 0 : Number(r.returnsInput.value) || 0;
+                const amount = Number(r.amountInput.value) || 0;
+                const surplus = Number(r.surplusInput.value) || 0;
+                const from = escapePdfHtml(formatTimeForExport(r.from));
+                const to = escapePdfHtml(formatTimeForExport(r.to));
+                bodyRows += '<tr>';
+                if (i === 0) bodyRows += '<td class="merged-person" rowspan="8">' + escapePdfHtml(branchVal) + '</td><td class="merged-person" rowspan="8">' + escapePdfHtml(nameVal) + '</td>';
+                bodyRows += '<td>' + escapePdfHtml(r.shiftSelect.value) + '</td><td>' + amount + '</td><td>' + dateText + '</td><td>' + from + '</td><td>' + to + '</td><td>' + orders + '</td><td>' + returns + '</td><td class="calculated">' + (orders + returns) + '</td><td class="calculated">' + surplus + '</td></tr>';
+              }
+            }
+
+            bodyRows += '<tr class="weekly-total"><td></td><td class="total-value">' + weeklyAmount + '</td><td class="total-label">الإجمالي الأسبوعي</td><td></td><td></td><td class="total-value">' + weeklyOrders + '</td><td class="total-value">' + weeklyReturns + '</td><td class="total-value">' + weeklyCounted + '</td><td class="total-value">' + weeklySurplus + '</td></tr>';
+
+            const html = `<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>الراتب الأسبوعي - ${escapePdfHtml(nameVal || 'مندوب')}</title>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+  @page { size: A4 landscape; margin: 6mm; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; direction: rtl; color: #0f172a; background: #fff; font-family: 'Tajawal', Arial, sans-serif; }
+  body { width: 100%; }
+  .sheet { width: 100%; }
+  table { width: 100%; table-layout: fixed; border-collapse: collapse; direction: rtl; }
+  th, td { border: 1px solid #d1d5db; text-align: center; vertical-align: middle; overflow-wrap: anywhere; }
+  thead th { background: #1e293b !important; color: #fff !important; font-size: 13pt; font-weight: 700; padding: 5mm 1.2mm; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  thead tr:nth-child(2) th { padding-top: 3mm; padding-bottom: 3mm; }
+  tbody td { font-size: 12pt; font-weight: 400; padding: 3.2mm 1mm; line-height: 1.2; }
+  .merged-person { font-weight: 500; background: #fff; }
+  .calculated, .total-value { background: #fef08a !important; font-weight: 700; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .absent-cell { background: #fca5a5 !important; color: #7f1d1d; font-weight: 700; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .weekly-total td { font-weight: 700; padding-top: 3.5mm; padding-bottom: 3.5mm; }
+  .weekly-total .total-label { color: #334155; }
+  @media screen { body { padding: 8px; } .sheet { max-width: 1100px; margin: 0 auto; } }
+  @media print { html, body { width: 100%; } .sheet { width: 100%; } }
+</style>
+</head>
+<body>
+<div class="sheet">
+<table>
+<colgroup>${colgroup}</colgroup>
+<thead>
+<tr>
+<th rowspan="2">الفرع</th><th rowspan="2">الاسم</th><th rowspan="2">الدوام</th><th rowspan="2">المبلغ</th><th rowspan="2">التاريخ</th><th colspan="2">وقت الحضور والانصراف</th><th rowspan="2">الطلبات</th><th rowspan="2">المرتجعات</th><th rowspan="2">إجمالي الطلبات</th><th rowspan="2">الفائض</th>
+</tr>
+<tr><th>من</th><th>إلى</th></tr>
+</thead>
+<tbody>${bodyRows}</tbody>
+</table>
+</div>
+<script>
+  window.addEventListener('load', function () {
+    var doPrint = function () {
+      setTimeout(function () {
+        window.focus();
+        window.print();
+      }, 350);
+    };
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(doPrint).catch(doPrint);
+    } else {
+      doPrint();
+    }
+  });
+  window.addEventListener('afterprint', function () { window.close(); });
+</script>
+</body>
+</html>`;
+
+            printWindow.document.open();
+            printWindow.document.write(html);
+            printWindow.document.close();
+            statusMsg.textContent = 'تم تجهيز الجدول. اختر «حفظ كملف PDF» من نافذة الطباعة.';
           } catch (error) {
-            console.error('PDF export error:', error);
-            statusMsg.textContent = 'تعذر تصدير PDF: ' + (error && error.message ? error.message : 'حدث خطأ غير متوقع. تحقق من الاتصال بالإنترنت ثم أعد المحاولة.');
+            printWindow.close();
+            console.error('PDF print export error:', error);
+            statusMsg.textContent = 'تعذر تجهيز PDF: ' + (error && error.message ? error.message : 'حدث خطأ غير متوقع.');
           } finally {
-            noPrintEls.forEach(function (el) {
-              el.style.display = '';
-            });
             btnExportPdf.disabled = false;
           }
         }
