@@ -1209,18 +1209,38 @@
           });
 
           worksheet.columns = [
-            { width: 16 },
-            { width: 18 },
-            { width: 12 },
-            { width: 12 },
-            { width: 16 },
-            { width: 16 },
-            { width: 16 },
-            { width: 14 },
             { width: 14 },
             { width: 16 },
-            { width: 12 },
+            { width: 10 },
+            { width: 11 },
+            { width: 16 },
+            { width: 13 },
+            { width: 13 },
+            { width: 10 },
+            { width: 10 },
+            { width: 14 },
+            { width: 10 },
           ];
+
+          // إعداد الطباعة: ورقة A4 أفقية، صفحة واحدة عرضًا وارتفاعًا
+          worksheet.pageSetup = {
+            paperSize: 9,
+            orientation: 'landscape',
+            fitToPage: true,
+            fitToWidth: 1,
+            fitToHeight: 1,
+            margins: {
+              left: 0.2,
+              right: 0.2,
+              top: 0.35,
+              bottom: 0.35,
+              header: 0.15,
+              footer: 0.15,
+            },
+          };
+          worksheet.printArea = 'A1:K10';
+          worksheet.pageSetup.horizontalCentered = true;
+          worksheet.pageSetup.verticalCentered = true;
 
           // الصف 1: العناوين الرئيسية
           worksheet.getRow(1).values = [
@@ -1333,7 +1353,7 @@
 
           const headerFont = {
             name: 'Tajawal',
-            size: 11,
+            size: 13,
             bold: true,
             color: { argb: 'FFFFFFFF' },
           };
@@ -1350,18 +1370,18 @@
             fgColor: { argb: 'FFFCA5A5' },
           };
 
-          const calculatedTotalCols = new Set([4, 8, 9]);
+          const calculatedTotalCols = new Set([4, 8, 9, 10, 11]);
 
           for (let rowNum = 1; rowNum <= 10; rowNum++) {
             const row = worksheet.getRow(rowNum);
-            row.height = rowNum <= 2 ? 24 : 22;
+            row.height = rowNum <= 2 ? 30 : rowNum === 10 ? 27 : 25;
             const isAbsentRow =
               rowNum >= 3 &&
               rowNum <= 9 &&
               rows[rowNum - 3] &&
               rows[rowNum - 3].absentCheckbox.checked;
 
-            for (let colNum = 1; colNum <= 9; colNum++) {
+            for (let colNum = 1; colNum <= 11; colNum++) {
               const cell = row.getCell(colNum);
               cell.border = thinGrayBorder;
               cell.alignment = { horizontal: 'center', vertical: 'middle' };
@@ -1374,14 +1394,14 @@
                   cell.fill = totalHighlightFill;
                   cell.font = {
                     name: 'Tajawal',
-                    size: 11,
+                    size: 12,
                     bold: true,
                     color: { argb: 'FF0F172A' },
                   };
                 } else {
                   cell.font = {
                     name: 'Tajawal',
-                    size: 11,
+                    size: 12,
                     bold: colNum === 5,
                     color: { argb: 'FF334155' },
                   };
@@ -1390,14 +1410,14 @@
                 cell.fill = absentRowFill;
                 cell.font = {
                   name: 'Tajawal',
-                  size: 11,
+                  size: 12,
                   bold: true,
                   color: { argb: 'FF7F1D1D' },
                 };
               } else {
                 cell.font = {
                   name: 'Tajawal',
-                  size: 11,
+                  size: 12,
                   color: { argb: 'FF0F172A' },
                 };
               }
@@ -1471,6 +1491,9 @@
 
                 // تثبيت حدود الخلايا الداكنة الواضحة داخل نسخة الـ PDF
                 clonedTable.style.borderCollapse = 'collapse';
+                clonedTable.style.tableLayout = 'fixed';
+                clonedTable.style.width = '100%';
+                clonedTable.style.fontFamily = '"Tajawal", Arial, sans-serif';
 
                 // منع تداخل خلفية أي صف <tr> مع خلايا rowspan (في الرأس والجسم)
                 const allRows = clonedTable.querySelectorAll('thead tr, tbody tr');
@@ -1486,8 +1509,12 @@
                   th.style.fontWeight = '700';
                   th.style.opacity = '1';
                   th.style.border = '1px solid #4b5563';
-                  th.style.paddingTop = '12px';
-                  th.style.paddingBottom = '12px';
+                  th.style.paddingTop = '9px';
+                  th.style.paddingBottom = '9px';
+                  th.style.paddingLeft = '6px';
+                  th.style.paddingRight = '6px';
+                  th.style.fontSize = '15px';
+                  th.style.lineHeight = '1.25';
                 });
 
                 // زيادة المساحة الرأسية للصفوف وتثبيت الحدود لكل خلايا الجسم (بما فيها خلايا rowspan)
@@ -1495,8 +1522,12 @@
                 bodyCells.forEach(function (td) {
                   td.style.border = '1px solid #4b5563';
                   td.style.borderRadius = '0';
-                  td.style.paddingTop = '13px';
-                  td.style.paddingBottom = '13px';
+                  td.style.paddingTop = '9px';
+                  td.style.paddingBottom = '9px';
+                  td.style.paddingLeft = '5px';
+                  td.style.paddingRight = '5px';
+                  td.style.fontSize = '14px';
+                  td.style.lineHeight = '1.25';
                   if (td.hasAttribute('rowspan')) {
                     td.style.backgroundColor = 'transparent';
                   }
