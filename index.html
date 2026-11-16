@@ -1522,13 +1522,24 @@
                 if (!clonedTable) return;
 
                 // التأكد من عدم اقتصاص الجدول أفقياً على الشاشات الصغيرة
-                const wrapper = clonedTable.parentElement;
-                if (wrapper) {
-                  wrapper.style.overflow = 'visible';
-                  wrapper.style.width = tableWidth + 'px';
-                  wrapper.style.maxWidth = 'none';
-                  wrapper.style.display = 'block';
+                // فك قيود الحاويات المتداخلة؛ الجدول داخل overflow-x-auto وmain محدود العرض
+                let ancestor = clonedTable.parentElement;
+                while (ancestor && ancestor !== clonedDoc.body) {
+                  ancestor.style.overflow = 'visible';
+                  ancestor.style.width = tableWidth + 'px';
+                  ancestor.style.maxWidth = 'none';
+                  ancestor.style.minWidth = tableWidth + 'px';
+                  ancestor.style.maxHeight = 'none';
+                  ancestor.style.height = 'auto';
+                  ancestor.style.display = 'block';
+                  ancestor.style.transform = 'none';
+                  ancestor = ancestor.parentElement;
                 }
+                clonedDoc.body.style.width = tableWidth + 'px';
+                clonedDoc.body.style.minWidth = tableWidth + 'px';
+                clonedDoc.body.style.overflow = 'visible';
+                clonedDoc.documentElement.style.width = tableWidth + 'px';
+                clonedDoc.documentElement.style.overflow = 'visible';
 
                 // تثبيت حدود الخلايا الداكنة الواضحة داخل نسخة الـ PDF
                 clonedTable.style.borderCollapse = 'collapse';
