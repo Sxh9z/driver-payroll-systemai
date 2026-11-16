@@ -503,7 +503,12 @@
             r.amountInput.value = '0';
             return;
           }
-          r.amountInput.value = computeAmount(r.shiftSelect.value);
+
+          const baseAmount = Number(computeAmount(r.shiftSelect.value)) || 0;
+          const surplusCount = computeSurplus(r.shiftSelect.value, r.ordersInput.value);
+          const surplusRate = r.shiftSelect.value === '120*7' ? 7 : (r.shiftSelect.value === '70*5' ? 5 : 0);
+          const finalAmount = baseAmount + surplusCount * surplusRate;
+          r.amountInput.value = r.shiftSelect.value ? String(finalAmount) : '';
         }
 
         function updateSurplusForRow(rowIndex) {
@@ -905,6 +910,8 @@
 
             ordersInput.addEventListener('input', function () {
               updateSurplusForRow(i);
+              // إعادة احتساب المبلغ تلقائيًا عند تغيير عدد الطلبات، مع بقاء إمكانية تعديله يدويًا بعد ذلك.
+              applyShiftAmount(i);
               updateTotals();
               saveTableData();
             });
