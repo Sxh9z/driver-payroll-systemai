@@ -1437,13 +1437,40 @@
           statusMsg.textContent = 'تم تصدير الجدول إلى ملف Excel بنجاح.';
         }
 
-        async function exportToPdf() {
-          if (typeof html2canvas === 'undefined' || !window.jspdf || !window.jspdf.jsPDF) {
-            statusMsg.textContent =
-              'تعذر تحميل مكتبة التصدير (jsPDF / html2canvas)، يرجى التحقق من الاتصال بالإنترنت.';
-            return;
-          }
+        // تحميل مكتبات PDF احتياطيًا عند تعذر تحميل روابط CDN الأساسية
+        function loadExternalScript(src) {
+          return new Promise(function (resolve, reject) {
+            const script = document.createElement('script');
+            script.src = src;
+            script.onload = resolve;
+            script.onerror = function () {
+              reject(new Error('تعذر تحميل: ' + src));
+            };
+            document.head.appendChild(script);
+          });
+        }
 
+        async function ensurePdfLibraries() {
+          if (typeof window.html2canvas !== 'function') {
+            try {
+              await loadExternalScript('https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js');
+            } catch (error) {
+              if (typeof window.html2canvas !== 'function') throw error;
+            }
+          }
+          if (!window.jspdf || typeof window.jspdf.jsPDF !== 'function') {
+            try {
+              await loadExternalScript('https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js');
+            } catch (error) {
+              if (!window.jspdf || typeof window.jspdf.jsPDF !== 'function') throw error;
+            }
+          }
+          if (typeof window.html2canvas !== 'function' || !window.jspdf || typeof window.jspdf.jsPDF !== 'function') {
+            throw new Error('مكتبات PDF غير متاحة');
+          }
+        }
+
+        async function exportToPdf() {
           const tableEl = document.getElementById('salary-table');
           if (!tableEl) return;
 
@@ -1453,6 +1480,7 @@
           const noPrintEls = Array.from(tableEl.querySelectorAll('.no-print'));
 
           try {
+            await ensurePdfLibraries();
             closeDatePicker();
 
             if (document.fonts && document.fonts.ready) {
@@ -1472,7 +1500,7 @@
               return el.value;
             });
 
-            const canvas = await html2canvas(tableEl, {
+            const canvas = await window.html2canvas(tableEl, {
               scale: 3,
               useCORS: true,
               backgroundColor: '#ffffff',
@@ -1600,8 +1628,9 @@
             const dateTag = new Date().toISOString().slice(0, 10);
             pdf.save('الراتب_الأسبوعي_' + repName + '_' + dateTag + '.pdf');
             statusMsg.textContent = 'تم تصدير الجدول إلى ملف PDF بنجاح.';
-          } catch (_) {
-            statusMsg.textContent = 'حدث خطأ أثناء إنشاء ملف PDF، يرجى المحاولة مرة أخرى.';
+          } catch (error) {
+            console.error('PDF export error:', error);
+            statusMsg.textContent = 'تعذر تصدير PDF: ' + (error && error.message ? error.message : 'حدث خطأ غير متوقع. تحقق من الاتصال بالإنترنت ثم أعد المحاولة.');
           } finally {
             noPrintEls.forEach(function (el) {
               el.style.display = '';
