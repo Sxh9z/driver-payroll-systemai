@@ -495,7 +495,7 @@
           if (shiftValue !== '120*7' && shiftValue !== '70*5') {
             return 0;
           }
-          if (ordersRaw === '' || ordersRaw === null || ordersRaw === undefined) {
+          if ((ordersRaw === '' || ordersRaw === null || ordersRaw === undefined) && (returnsRaw === '' || returnsRaw === null || returnsRaw === undefined)) {
             return 0;
           }
           const orders = Number(ordersRaw) || 0;
@@ -526,6 +526,9 @@
             r.surplusInput.value = '0';
             return;
           }
+          const ordersValue = r.ordersInput.value === '' ? 0 : Number(r.ordersInput.value) || 0;
+          const returnsValue = r.returnsInput.value === '' ? 0 : Number(r.returnsInput.value) || 0;
+          r.countedOrdersValue.textContent = ordersValue + returnsValue;
           r.surplusInput.value = computeSurplus(r.shiftSelect.value, r.ordersInput.value, r.returnsInput.value);
         }
 
@@ -545,6 +548,7 @@
               r.tr.removeChild(r.toTd);
               r.tr.removeChild(r.ordersTd);
               r.tr.removeChild(r.returnsTd);
+              r.tr.removeChild(r.countedOrdersTd);
               r.tr.removeChild(r.surplusTd);
             }
           } else {
@@ -558,6 +562,7 @@
               r.tr.insertBefore(r.toTd, r.absentMergeRightTd);
               r.tr.insertBefore(r.ordersTd, r.absentMergeRightTd);
               r.tr.insertBefore(r.returnsTd, r.absentMergeRightTd);
+              r.tr.insertBefore(r.countedOrdersTd, r.absentMergeRightTd);
               r.tr.insertBefore(r.surplusTd, r.absentMergeRightTd);
               r.tr.removeChild(r.absentMergeRightTd);
             }
@@ -878,7 +883,15 @@
             returnsTd.appendChild(returnsInput);
             tr.appendChild(returnsTd);
 
-            // 9. الفائض (readonly)
+            // 9. إجمالي الطلبات (الطلبات + المرتجعات فقط، للصف نفسه)
+            const countedOrdersTd = document.createElement('td');
+            countedOrdersTd.className = 'p-1.5 align-middle bg-yellow-50 text-slate-900 font-semibold tabular-nums';
+            const countedOrdersValue = document.createElement('span');
+            countedOrdersValue.textContent = '0';
+            countedOrdersTd.appendChild(countedOrdersValue);
+            tr.appendChild(countedOrdersTd);
+
+            // 10. الفائض (readonly)
             const surplusTd = document.createElement('td');
             surplusTd.className = 'p-1.5 align-middle bg-gray-50';
             const surplusInput = document.createElement('input');
@@ -897,7 +910,7 @@
             absentMergeLeftTd.textContent = 'غياب';
 
             const absentMergeRightTd = document.createElement('td');
-            absentMergeRightTd.colSpan = 6;
+            absentMergeRightTd.colSpan = 7;
             absentMergeRightTd.className = 'absent-merged-cell p-2 align-middle text-center font-bold text-red-950';
             absentMergeRightTd.style.backgroundColor = '#fca5a5';
             absentMergeRightTd.textContent = 'غياب';
@@ -912,6 +925,8 @@
               toTd: toTd,
               ordersTd: ordersTd,
               returnsTd: returnsTd,
+              countedOrdersTd: countedOrdersTd,
+              countedOrdersValue: countedOrdersValue,
               surplusTd: surplusTd,
               absentMergeLeftTd: absentMergeLeftTd,
               absentMergeRightTd: absentMergeRightTd,
