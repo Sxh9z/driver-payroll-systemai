@@ -317,6 +317,9 @@
         let unifyShiftBtn = null;
         let unifyTimeBtn = null;
         let seqDateBtn = null;
+        let unifyAmountBtn = null;
+        let activeUnifyRowIndex = 0;
+        let activeUnifyColumn = 'shift';
         const rows = [];
 
         function saveTableData() {
@@ -436,6 +439,7 @@
           if (branchInput) branchInput.value = '';
           if (nameInput) nameInput.value = '';
           if (unifyShiftBtn) unifyShiftBtn.textContent = 'توحيد';
+          if (unifyAmountBtn) unifyAmountBtn.textContent = 'توحيد';
           if (unifyTimeBtn) unifyTimeBtn.textContent = 'توحيد';
 
           for (let i = 0; i < DAYS_COUNT; i++) {
@@ -567,7 +571,9 @@
             totalSurplus += Number(r.surplusInput.value) || 0;
           }
 
-          document.getElementById('total-amount').textContent = totalAmount;
+          const totalAmountValue = document.getElementById('total-amount-value');
+          if (totalAmountValue) totalAmountValue.textContent = totalAmount;
+          else document.getElementById('total-amount').textContent = totalAmount;
           document.getElementById('total-orders').textContent = totalOrders;
           document.getElementById('total-surplus').textContent = totalSurplus;
         }
@@ -653,6 +659,22 @@
 
         function buildTable() {
           tbody.innerHTML = '';
+
+          // تتبع آخر خلية تم التركيز عليها لتحديد مصدر ونطاق التوحيد.
+          tbody.addEventListener('focusin', function (event) {
+            const target = event.target;
+            const rowEl = target.closest('tr');
+            if (!rowEl || rowEl.parentNode !== tbody) return;
+            const rowIndex = Array.prototype.indexOf.call(tbody.children, rowEl);
+            if (rowIndex < 0 || rowIndex >= DAYS_COUNT) return;
+            activeUnifyRowIndex = rowIndex;
+            const row = rows[rowIndex];
+            if (!row) return;
+            if (target === row.shiftSelect) activeUnifyColumn = 'shift';
+            else if (target === row.amountInput) activeUnifyColumn = 'amount';
+            else if ([row.from.hourInput, row.from.minInput, row.from.periodSelect].includes(target)) activeUnifyColumn = 'from';
+            else if ([row.to.hourInput, row.to.minInput, row.to.periodSelect].includes(target)) activeUnifyColumn = 'to';
+          });
 
           // الصفوف 3 إلى 9 (7 أيام)
           for (let i = 0; i < DAYS_COUNT; i++) {
@@ -911,7 +933,19 @@
           const amountTotalTd = document.createElement('td');
           amountTotalTd.id = 'total-amount';
           amountTotalTd.className = 'py-2.5 px-2 bg-yellow-200 text-slate-900 tabular-nums align-middle';
-          amountTotalTd.textContent = '0';
+          const amountTotalWrap = document.createElement('div');
+          amountTotalWrap.className = 'flex flex-col items-center justify-center gap-1';
+          const amountTotalValue = document.createElement('span');
+          amountTotalValue.id = 'total-amount-value';
+          amountTotalValue.textContent = '0';
+          amountTotalWrap.appendChild(amountTotalValue);
+          unifyAmountBtn = document.createElement('button');
+          unifyAmountBtn.type = 'button';
+          unifyAmountBtn.textContent = 'توحيد';
+          unifyAmountBtn.className = 'no-print px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg cursor-pointer';
+          unifyAmountBtn.onclick = unifyAmountColumn;
+          amountTotalWrap.appendChild(unifyAmountBtn);
+          amountTotalTd.appendChild(amountTotalWrap);
           totalTr.appendChild(amountTotalTd);
 
           // خلية التاريخ في صف الإجمالي: العنوان + زر "تعبئة تسلسلية" أسفل عمود التاريخ
@@ -933,18 +967,30 @@
           dateTotalTd.appendChild(dateTotalWrap);
           totalTr.appendChild(dateTotalTd);
 
-          // خليتا "من" و"إلى" مدمجتان: زر "توحيد" أسفل عمود وقت الحضور والانصراف بالكامل
-          const timeTotalTd = document.createElement('td');
-          timeTotalTd.colSpan = 2;
-          timeTotalTd.className = 'p-2 align-middle bg-white';
+          // زر مستقل لتوحيد وقت الحضور
+          const timeFromTotalTd = document.createElement('td');
+          timeFromTotalTd.className = 'p-2 align-middle bg-white';
           unifyTimeBtn = document.createElement('button');
           unifyTimeBtn.type = 'button';
           unifyTimeBtn.textContent = 'توحيد';
-          unifyTimeBtn.className =
-            'no-print px-6 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500';
+          unifyTimeBtn.className = 'no-print px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg cursor-pointer';
           unifyTimeBtn.onclick = unifyTimeColumns;
-          timeTotalTd.appendChild(unifyTimeBtn);
-          totalTr.appendChild(timeTotalTd);
+          timeFromTotalTd.appendChild(unifyTimeBtn);
+          totalTr.appendChild(timeFromTotalTd);
+
+          // زر مستقل لتوحيد وقت الانصراف
+          const timeToTotalTd = document.createElement('td');
+          timeToTotalTd.className = 'p-2 align-middle bg-white';
+          const unifyTimeToBtn = document.createElement('button');
+          unifyTimeToBtn.type = 'button';
+          unifyTimeToBtn.textContent = 'توحيد';
+          unifyTimeToBtn.className = 'no-print px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg cursor-pointer';
+          unifyTimeToBtn.onclick = function () {
+            activeUnifyColumn = 'to';
+            unifyTimeColumns();
+          };
+          timeToTotalTd.appendChild(unifyTimeToBtn);
+          totalTr.appendChild(timeToTotalTd);
 
           // خلية إجمالي عدد الطلبات (bg-yellow-200)
           const ordersTotalTd = document.createElement('td');
@@ -994,40 +1040,74 @@
           statusMsg.textContent = 'تمت تعبئة التواريخ تسلسليًا لجميع أيام الأسبوع.';
         }
 
+        function getUnifyStartRow() {
+          return Math.max(0, Math.min(DAYS_COUNT - 1, activeUnifyRowIndex));
+        }
+
         function unifyShiftColumn() {
-          const firstShift = rows[0].shiftSelect.value;
-          for (let i = 0; i < DAYS_COUNT; i++) {
-            rows[i].shiftSelect.value = firstShift;
+          const start = getUnifyStartRow();
+          const source = rows[start];
+          if (!source || source.absentCheckbox.checked || !source.shiftSelect.value) {
+            statusMsg.textContent = 'اختر خلية دوام تحتوي على قيمة في يوم غير غياب أولاً.';
+            return;
+          }
+          const value = source.shiftSelect.value;
+          for (let i = start; i < DAYS_COUNT; i++) {
+            const r = rows[i];
+            if (r.absentCheckbox.checked) continue;
+            r.shiftSelect.value = value;
             applyShiftAmount(i);
             updateSurplusForRow(i);
           }
           updateTotals();
           saveTableData();
           unifyShiftBtn.textContent = 'توحيد ✓';
-          statusMsg.textContent = 'تم توحيد الدوام لجميع أيام الأسبوع.';
+          statusMsg.textContent = 'تم توحيد الدوام من اليوم المحدد حتى نهاية الأسبوع، مع تخطي أيام الغياب.';
+        }
+
+        function unifyAmountColumn() {
+          const start = getUnifyStartRow();
+          const source = rows[start];
+          if (!source || source.absentCheckbox.checked || source.amountInput.value === '') {
+            statusMsg.textContent = 'اختر خلية مبلغ تحتوي على قيمة في يوم غير غياب أولاً.';
+            return;
+          }
+          const value = source.amountInput.value;
+          for (let i = start; i < DAYS_COUNT; i++) {
+            const r = rows[i];
+            if (r.absentCheckbox.checked) continue;
+            r.amountInput.value = value;
+          }
+          updateTotals();
+          saveTableData();
+          unifyAmountBtn.textContent = 'توحيد ✓';
+          statusMsg.textContent = 'تم توحيد المبلغ من اليوم المحدد حتى نهاية الأسبوع، مع تخطي أيام الغياب.';
         }
 
         function unifyTimeColumns() {
-          const firstFromHour = rows[0].from.hourInput.value;
-          const firstFromMin = rows[0].from.minInput.value || '00';
-          const firstFromPeriod = rows[0].from.periodSelect.value;
-
-          const firstToHour = rows[0].to.hourInput.value;
-          const firstToMin = rows[0].to.minInput.value || '00';
-          const firstToPeriod = rows[0].to.periodSelect.value;
-
-          for (let i = 1; i < DAYS_COUNT; i++) {
-            rows[i].from.hourInput.value = firstFromHour;
-            rows[i].from.minInput.value = firstFromMin;
-            rows[i].from.periodSelect.value = firstFromPeriod;
-
-            rows[i].to.hourInput.value = firstToHour;
-            rows[i].to.minInput.value = firstToMin;
-            rows[i].to.periodSelect.value = firstToPeriod;
+          const start = getUnifyStartRow();
+          const side = activeUnifyColumn === 'to' ? 'to' : 'from';
+          const source = rows[start];
+          if (!source || source.absentCheckbox.checked) {
+            statusMsg.textContent = 'اختر خلية وقت في يوم غير غياب أولاً.';
+            return;
+          }
+          const ctrl = source[side];
+          if (!ctrl.hourInput.value.trim()) {
+            statusMsg.textContent = 'أدخل الساعة في الخلية المحددة أولاً ثم اضغط توحيد.';
+            return;
+          }
+          const value = { hour: ctrl.hourInput.value, minute: ctrl.minInput.value || '00', period: ctrl.periodSelect.value };
+          for (let i = start; i < DAYS_COUNT; i++) {
+            const r = rows[i];
+            if (r.absentCheckbox.checked) continue;
+            r[side].hourInput.value = value.hour;
+            r[side].minInput.value = value.minute;
+            r[side].periodSelect.value = value.period;
           }
           saveTableData();
           unifyTimeBtn.textContent = 'توحيد ✓';
-          statusMsg.textContent = 'تم توحيد وقت الحضور والانصراف لجميع أيام الأسبوع.';
+          statusMsg.textContent = 'تم توحيد وقت ' + (side === 'from' ? 'الحضور' : 'الانصراف') + ' من اليوم المحدد حتى نهاية الأسبوع، مع تخطي أيام الغياب.';
         }
 
         function formatTimeForExport(ctrl) {
