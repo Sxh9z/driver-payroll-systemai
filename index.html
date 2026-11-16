@@ -1615,7 +1615,18 @@
               throw new Error('تعذر إنشاء صورة الجدول؛ حاول إعادة التصدير.');
             }
             const ctx = canvas.getContext('2d');
-            if (!ctx || ctx.getImageData(0, 0, Math.min(8, canvas.width), Math.min(8, canvas.height)).data.every((v, idx) => idx % 4 === 3 || v > 248)) {
+            let hasVisibleContent = false;
+            if (ctx) {
+              for (let y = 0; y < 5 && !hasVisibleContent; y++) {
+                for (let x = 0; x < 5 && !hasVisibleContent; x++) {
+                  const px = Math.min(canvas.width - 1, Math.floor((x + 0.5) * canvas.width / 5));
+                  const py = Math.min(canvas.height - 1, Math.floor((y + 0.5) * canvas.height / 5));
+                  const pixel = ctx.getImageData(px, py, 1, 1).data;
+                  if (pixel[0] < 245 || pixel[1] < 245 || pixel[2] < 245) hasVisibleContent = true;
+                }
+              }
+            }
+            if (!hasVisibleContent) {
               throw new Error('تم التقاط صفحة فارغة بدل الجدول. أعد المحاولة بعد تحديث الصفحة.');
             }
             // JPEG أكثر تحمّلًا للصور الكبيرة ويمنع أخطاء تحليل PNG داخل jsPDF
