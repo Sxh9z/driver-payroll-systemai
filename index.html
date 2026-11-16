@@ -897,7 +897,7 @@
             absentMergeLeftTd.textContent = 'غياب';
 
             const absentMergeRightTd = document.createElement('td');
-            absentMergeRightTd.colSpan = 5;
+            absentMergeRightTd.colSpan = 6;
             absentMergeRightTd.className = 'absent-merged-cell p-2 align-middle text-center font-bold text-red-950';
             absentMergeRightTd.style.backgroundColor = '#fca5a5';
             absentMergeRightTd.textContent = 'غياب';
@@ -1039,14 +1039,14 @@
           timeToTotalTd.appendChild(unifyTimeToBtn);
           totalTr.appendChild(timeToTotalTd);
 
-          // خلية إجمالي عدد الطلبات (bg-yellow-200)
+          // خلية إجمالي الطلبات المستلمة (bg-yellow-200)
           const ordersTotalTd = document.createElement('td');
           ordersTotalTd.id = 'total-orders';
           ordersTotalTd.className = 'py-2.5 px-2 bg-yellow-200 text-slate-900 tabular-nums align-middle';
           ordersTotalTd.textContent = '0';
           totalTr.appendChild(ordersTotalTd);
 
-          // خلية إجمالي الفائض (bg-yellow-200)
+          // خلية إجمالي المرتجعات (bg-yellow-200)
           const returnsTotalTd = document.createElement('td');
           returnsTotalTd.id = 'total-returns';
           returnsTotalTd.className = 'py-2.5 px-2 bg-yellow-200 text-slate-900 tabular-nums align-middle';
