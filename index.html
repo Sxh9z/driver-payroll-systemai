@@ -112,6 +112,9 @@
               <th rowspan="2" scope="col" class="bg-slate-800 text-white py-3 px-2 font-bold min-w-[100px] align-middle">
                 عدد الطلبات
               </th>
+              <th rowspan="2" scope="col" class="bg-slate-800 text-white py-3 px-2 font-bold min-w-[100px] align-middle">
+                المرتجعات
+              </th>
               <th rowspan="2" scope="col" class="bg-slate-800 text-white py-3 px-2 font-bold min-w-[85px] align-middle">
                 الفائض
               </th>
@@ -343,6 +346,7 @@
                     period: r.to.periodSelect.value,
                   },
                   orders: r.ordersInput.value,
+                  returns: r.returnsInput.value,
                   absent: r.absentCheckbox.checked,
                 };
               }),
@@ -415,6 +419,7 @@
                 if (saved.orders !== undefined && saved.orders !== null) {
                   r.ordersInput.value = String(saved.orders);
                 }
+                if (saved.returns !== undefined && saved.returns !== null) r.returnsInput.value = String(saved.returns);
                 if (saved.absent === true) {
                   r.absentCheckbox.checked = true;
                   applyAbsentState(i, true, false);
@@ -459,6 +464,7 @@
             r.to.minInput.value = '00';
             r.to.periodSelect.value = 'صباحًا';
             r.ordersInput.value = '';
+            r.returnsInput.value = '';
             updateSurplusForRow(i);
           }
 
@@ -482,19 +488,19 @@
           return '';
         }
 
-        function computeSurplus(shiftValue, ordersRaw) {
+        function computeSurplus(shiftValue, ordersRaw, returnsRaw) {
           if (shiftValue !== '120*7' && shiftValue !== '70*5') {
             return 0;
           }
           if (ordersRaw === '' || ordersRaw === null || ordersRaw === undefined) {
             return 0;
           }
-          const orders = Number(ordersRaw);
-          if (!Number.isFinite(orders) || orders <= 0) {
-            return 0;
-          }
+          const orders = Number(ordersRaw) || 0;
+          const returns = Number(returnsRaw) || 0;
+          if (!Number.isFinite(orders) || !Number.isFinite(returns)) return 0;
+          const totalCounted = Math.max(0, orders) + Math.max(0, returns);
           const threshold = shiftValue === '70*5' ? 5 : 15;
-          return orders > threshold ? orders - threshold : 0;
+          return Math.max(0, totalCounted - threshold);
         }
 
         function applyShiftAmount(rowIndex) {
@@ -505,7 +511,7 @@
           }
 
           const baseAmount = Number(computeAmount(r.shiftSelect.value)) || 0;
-          const surplusCount = computeSurplus(r.shiftSelect.value, r.ordersInput.value);
+          const surplusCount = computeSurplus(r.shiftSelect.value, r.ordersInput.value, r.returnsInput.value);
           const surplusRate = r.shiftSelect.value === '120*7' ? 7 : (r.shiftSelect.value === '70*5' ? 5 : 0);
           const finalAmount = baseAmount + surplusCount * surplusRate;
           r.amountInput.value = r.shiftSelect.value ? String(finalAmount) : '';
@@ -517,7 +523,7 @@
             r.surplusInput.value = '0';
             return;
           }
-          r.surplusInput.value = computeSurplus(r.shiftSelect.value, r.ordersInput.value);
+          r.surplusInput.value = computeSurplus(r.shiftSelect.value, r.ordersInput.value, r.returnsInput.value);
         }
 
         function applyAbsentState(rowIndex, isAbsent, shouldSave) {
@@ -535,6 +541,7 @@
               r.tr.removeChild(r.fromTd);
               r.tr.removeChild(r.toTd);
               r.tr.removeChild(r.ordersTd);
+              r.tr.removeChild(r.returnsTd);
               r.tr.removeChild(r.surplusTd);
             }
           } else {
@@ -547,6 +554,7 @@
               r.tr.insertBefore(r.fromTd, r.absentMergeRightTd);
               r.tr.insertBefore(r.toTd, r.absentMergeRightTd);
               r.tr.insertBefore(r.ordersTd, r.absentMergeRightTd);
+              r.tr.insertBefore(r.returnsTd, r.absentMergeRightTd);
               r.tr.insertBefore(r.surplusTd, r.absentMergeRightTd);
               r.tr.removeChild(r.absentMergeRightTd);
             }
@@ -561,6 +569,7 @@
         function updateTotals() {
           let totalAmount = 0;
           let totalOrders = 0;
+          let totalReturns = 0;
           let totalSurplus = 0;
 
           for (let i = 0; i < DAYS_COUNT; i++) {
@@ -573,6 +582,7 @@
             if (r.ordersInput.value !== '' && Number.isFinite(ordersVal)) {
               totalOrders += ordersVal;
             }
+            totalReturns += Number(r.returnsInput.value) || 0;
             totalSurplus += Number(r.surplusInput.value) || 0;
           }
 
@@ -580,6 +590,7 @@
           if (totalAmountValue) totalAmountValue.textContent = totalAmount;
           else document.getElementById('total-amount').textContent = totalAmount;
           document.getElementById('total-orders').textContent = totalOrders;
+          document.getElementById('total-returns').textContent = totalReturns;
           document.getElementById('total-surplus').textContent = totalSurplus;
         }
 
@@ -847,7 +858,20 @@
             ordersTd.appendChild(ordersInput);
             tr.appendChild(ordersTd);
 
-            // 8. الفائض (readonly)
+            // 8. المرتجعات (إدخال يدوي)
+            const returnsTd = document.createElement('td');
+            returnsTd.className = 'p-1.5 align-middle';
+            const returnsInput = document.createElement('input');
+            returnsInput.type = 'number';
+            returnsInput.min = '0';
+            returnsInput.step = '1';
+            returnsInput.placeholder = '0';
+            returnsInput.setAttribute('aria-label', 'المرتجعات - اليوم ' + (i + 1));
+            returnsInput.className = 'w-full py-1.5 px-2 text-center text-sm tabular-nums border border-gray-300 rounded bg-white focus:outline-none focus:border-blue-600';
+            returnsTd.appendChild(returnsInput);
+            tr.appendChild(returnsTd);
+
+            // 9. الفائض (readonly)
             const surplusTd = document.createElement('td');
             surplusTd.className = 'p-1.5 align-middle bg-gray-50';
             const surplusInput = document.createElement('input');
@@ -880,6 +904,7 @@
               fromTd: fromTd,
               toTd: toTd,
               ordersTd: ordersTd,
+              returnsTd: returnsTd,
               surplusTd: surplusTd,
               absentMergeLeftTd: absentMergeLeftTd,
               absentMergeRightTd: absentMergeRightTd,
@@ -891,6 +916,7 @@
               from: fromControls,
               to: toControls,
               ordersInput: ordersInput,
+              returnsInput: returnsInput,
               surplusInput: surplusInput,
             });
 
@@ -911,6 +937,13 @@
             ordersInput.addEventListener('input', function () {
               updateSurplusForRow(i);
               // إعادة احتساب المبلغ تلقائيًا عند تغيير عدد الطلبات، مع بقاء إمكانية تعديله يدويًا بعد ذلك.
+              applyShiftAmount(i);
+              updateTotals();
+              saveTableData();
+            });
+
+            returnsInput.addEventListener('input', function () {
+              updateSurplusForRow(i);
               applyShiftAmount(i);
               updateTotals();
               saveTableData();
@@ -1007,6 +1040,12 @@
           totalTr.appendChild(ordersTotalTd);
 
           // خلية إجمالي الفائض (bg-yellow-200)
+          const returnsTotalTd = document.createElement('td');
+          returnsTotalTd.id = 'total-returns';
+          returnsTotalTd.className = 'py-2.5 px-2 bg-yellow-200 text-slate-900 tabular-nums align-middle';
+          returnsTotalTd.textContent = '0';
+          totalTr.appendChild(returnsTotalTd);
+
           const surplusTotalTd = document.createElement('td');
           surplusTotalTd.id = 'total-surplus';
           surplusTotalTd.className = 'py-2.5 px-2 bg-yellow-200 text-slate-900 tabular-nums align-middle';
@@ -1162,11 +1201,12 @@
             'وقت الحضور والانصراف',
             '',
             'عدد الطلبات',
+            'المرتجعات',
             'الفائض',
           ];
 
           // الصف 2: الصف الفرعي لوقت الحضور والانصراف
-          worksheet.getRow(2).values = ['', '', '', '', '', 'من', 'إلى', '', ''];
+          worksheet.getRow(2).values = ['', '', '', '', '', 'من', 'إلى', '', '', ''];
 
           // الصفوف 3 إلى 9: أيام الأسبوع السبعة
           for (let i = 0; i < DAYS_COUNT; i++) {
@@ -1187,6 +1227,7 @@
               ];
             } else {
               const ordersNum = r.ordersInput.value === '' ? 0 : Number(r.ordersInput.value) || 0;
+              const returnsNum = r.returnsInput.value === '' ? 0 : Number(r.returnsInput.value) || 0;
               const amountNum = Number(r.amountInput.value) || 0;
               const surplusNum = Number(r.surplusInput.value) || 0;
 
@@ -1199,6 +1240,7 @@
                 formatTimeForExport(r.from),
                 formatTimeForExport(r.to),
                 ordersNum,
+                returnsNum,
                 surplusNum,
               ];
             }
@@ -1214,6 +1256,7 @@
             '',
             '',
             Number(document.getElementById('total-orders').textContent) || 0,
+            Number(document.getElementById('total-returns').textContent) || 0,
             Number(document.getElementById('total-surplus').textContent) || 0,
           ];
 
@@ -1226,6 +1269,7 @@
           worksheet.mergeCells('F1:G1');
           worksheet.mergeCells('H1:H2');
           worksheet.mergeCells('I1:I2');
+          worksheet.mergeCells('J1:J2');
           worksheet.mergeCells('A3:A10');
           worksheet.mergeCells('B3:B10');
 
@@ -1234,7 +1278,7 @@
             if (rows[i].absentCheckbox.checked) {
               const excelRow = i + 3;
               worksheet.mergeCells('C' + excelRow + ':D' + excelRow);
-              worksheet.mergeCells('F' + excelRow + ':I' + excelRow);
+              worksheet.mergeCells('F' + excelRow + ':J' + excelRow);
             }
           }
 
