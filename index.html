@@ -1,0 +1,1610 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>حاسبة الراتب الأسبوعي للمندوب</title>
+    <meta
+      name="description"
+      content="أداة لحساب الراتب الأسبوعي والطلبات والفائض لمندوب توصيل أو مبيعات مع التصدير إلى Excel"
+    />
+    <meta property="og:title" content="حاسبة الراتب الأسبوعي للمندوب" />
+    <meta
+      property="og:description"
+      content="أداة لحساب الراتب الأسبوعي والطلبات والفائض لمندوب توصيل أو مبيعات مع التصدير إلى Excel"
+    />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Tajawal', 'system-ui', '-apple-system', 'sans-serif'],
+            },
+          },
+        },
+      };
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+      body {
+        font-family: 'Tajawal', system-ui, -apple-system, sans-serif;
+      }
+
+      .tabular-nums {
+        font-variant-numeric: tabular-nums;
+      }
+
+      input[type='number']::-webkit-inner-spin-button,
+      input[type='number']::-webkit-outer-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+      }
+      input[type='number'] {
+        -moz-appearance: textfield;
+      }
+
+      /* حدود واضحة وصريحة لكل خلايا الجدول */
+      table.excel-table {
+        border-collapse: collapse;
+      }
+      table.excel-table th,
+      table.excel-table td {
+        border: 1px solid #4b5563;
+      }
+
+      /* تنسيق الخلايا المدمجة لصف الغياب */
+      .absent-merged-cell {
+        background-color: #fca5a5 !important;
+      }
+
+      @media print {
+        .no-print {
+          display: none !important;
+        }
+      }
+    </style>
+  </head>
+  <body class="min-h-screen bg-gray-50 text-slate-900 py-6 px-3 sm:px-6 flex flex-col items-center justify-between gap-6">
+    <div class="w-full flex-1 flex items-start md:items-center justify-center">
+      <main class="w-full max-w-[1360px] bg-white shadow-md rounded-lg p-4 sm:p-6">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+        <h1 class="text-xl sm:text-2xl font-bold text-slate-900">
+          جدول حساب الراتب الأسبوعي للمندوب
+        </h1>
+        <p id="status-msg" class="text-sm text-slate-600" aria-live="polite"></p>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table id="salary-table" class="excel-table w-full min-w-[1040px] text-center text-sm">
+          <thead>
+            <!-- الصف 1: العناوين الرئيسية الثمانية -->
+            <tr>
+              <th rowspan="2" scope="col" class="bg-slate-800 text-white py-3 px-2 font-bold min-w-[120px] align-middle">
+                الفرع
+              </th>
+              <th rowspan="2" scope="col" class="bg-slate-800 text-white py-3 px-2 font-bold min-w-[140px] align-middle">
+                الاسم
+              </th>
+              <th rowspan="2" scope="col" class="bg-slate-800 text-white py-3 px-2 font-bold min-w-[100px] align-middle">
+                الدوام
+              </th>
+              <th rowspan="2" scope="col" class="bg-slate-800 text-white py-3 px-2 font-bold min-w-[85px] align-middle">
+                المبلغ
+              </th>
+              <th rowspan="2" scope="col" class="bg-slate-800 text-white py-3 px-2 font-bold min-w-[175px] align-middle">
+                التاريخ
+              </th>
+              <th colspan="2" scope="colgroup" class="bg-slate-800 text-white py-2 px-2 font-bold">
+                وقت الحضور والانصراف
+              </th>
+              <th rowspan="2" scope="col" class="bg-slate-800 text-white py-3 px-2 font-bold min-w-[100px] align-middle">
+                عدد الطلبات
+              </th>
+              <th rowspan="2" scope="col" class="bg-slate-800 text-white py-3 px-2 font-bold min-w-[85px] align-middle">
+                الفائض
+              </th>
+            </tr>
+            <!-- الصف 2: الصف الفرعي تحت عمود وقت الحضور والانصراف -->
+            <tr>
+              <th scope="col" class="bg-slate-800 text-white py-2 px-2 font-bold min-w-[175px]">من</th>
+              <th scope="col" class="bg-slate-800 text-white py-2 px-2 font-bold min-w-[175px]">إلى</th>
+            </tr>
+          </thead>
+
+          <tbody id="table-body">
+            <!-- الصفوف 3 إلى 9 تُنشأ عبر JavaScript، والصف 10 هو صف الإجمالي الأسبوعي -->
+          </tbody>
+        </table>
+      </div>
+
+      <div class="mt-4 flex flex-wrap items-center justify-between gap-3">
+        <button
+          id="btn-clear"
+          type="button"
+          class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-slate-700 border border-gray-300 text-xs font-medium rounded-lg cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+        >
+          تفريغ الجدول
+        </button>
+        <div class="flex flex-wrap items-center gap-3">
+          <button
+            id="btn-export-pdf"
+            type="button"
+            class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+          >
+            تصدير PDF
+          </button>
+          <button
+            id="btn-export"
+            type="button"
+            class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+          >
+            تصدير إلى Excel
+          </button>
+        </div>
+      </div>
+      </main>
+    </div>
+
+    <footer class="no-print w-full max-w-[1360px] bg-white border border-gray-200 rounded-xl shadow-sm px-5 py-4 sm:px-6 sm:py-5">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div class="flex flex-col items-start text-right">
+          <button
+            type="button"
+            class="px-3 py-0.5 rounded-full border border-blue-600 text-blue-600 bg-transparent text-xs font-medium mb-2 cursor-default focus:outline-none"
+          >
+            عن المنشئ
+          </button>
+          <div class="flex items-center gap-1.5 text-slate-900 font-bold text-base">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="w-4 h-4 text-blue-600 shrink-0"
+              aria-hidden="true"
+            >
+              <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+              <circle cx="12" cy="7" r="4" />
+            </svg>
+            <span>وليد احمد الاهدل</span>
+          </div>
+          <p class="text-xs sm:text-sm text-slate-500 mt-1">
+            ابتكار وتطوير حلول ذكية تسهم في تحسين سير العمل، ورفع الإنتاجية، وتحقيق أعلى مستويات الجودة
+          </p>
+        </div>
+
+        <div class="flex flex-col sm:flex-row md:flex-col lg:flex-row items-stretch sm:items-center gap-2.5 shrink-0">
+          <a
+            href="tel:+966597066585"
+            class="inline-flex items-center justify-center sm:justify-start gap-2 px-3.5 py-2 rounded-lg border border-gray-200 bg-gray-50/70 hover:border-blue-300 hover:bg-blue-50/40 text-slate-700 text-xs sm:text-sm transition-colors"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="w-4 h-4 text-blue-600 shrink-0"
+              aria-hidden="true"
+            >
+              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+            </svg>
+            <span dir="ltr" class="tabular-nums font-medium">+966 59 706 6585</span>
+          </a>
+
+          <a
+            href="mailto:walid3555z@gmail.com"
+            class="inline-flex items-center justify-center sm:justify-start gap-2 px-3.5 py-2 rounded-lg border border-gray-200 bg-gray-50/70 hover:border-blue-300 hover:bg-blue-50/40 text-slate-700 text-xs sm:text-sm transition-colors"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="w-4 h-4 text-blue-600 shrink-0"
+              aria-hidden="true"
+            >
+              <rect width="20" height="16" x="2" y="4" rx="2" />
+              <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+            </svg>
+            <span dir="ltr" class="font-medium">walid3555z@gmail.com</span>
+          </a>
+        </div>
+      </div>
+    </footer>
+
+    <!-- منتقي تاريخ عربي متوافق مع جميع المتصفحات وأجهزة Mac و Windows والجوال -->
+    <div
+      id="date-picker-popover"
+      class="hidden fixed z-50 w-72 bg-white border border-gray-300 rounded-lg shadow-lg p-3 text-slate-900"
+      role="dialog"
+      aria-label="اختيار التاريخ"
+    >
+      <div class="flex items-center justify-between gap-2 mb-2 pb-2 border-b border-gray-200">
+        <button
+          id="dp-prev-month"
+          type="button"
+          class="px-2.5 py-1 text-sm font-bold text-slate-700 hover:bg-gray-100 rounded cursor-pointer"
+          aria-label="الشهر السابق"
+        >
+          &#8250;
+        </button>
+        <div id="dp-month-year" class="text-sm font-bold text-slate-900"></div>
+        <button
+          id="dp-next-month"
+          type="button"
+          class="px-2.5 py-1 text-sm font-bold text-slate-700 hover:bg-gray-100 rounded cursor-pointer"
+          aria-label="الشهر التالي"
+        >
+          &#8249;
+        </button>
+      </div>
+      <div class="grid grid-cols-7 gap-1 text-center text-xs font-medium text-slate-500 mb-1">
+        <span>ح</span>
+        <span>ن</span>
+        <span>ث</span>
+        <span>ر</span>
+        <span>خ</span>
+        <span>ج</span>
+        <span>س</span>
+      </div>
+      <div id="dp-days-grid" class="grid grid-cols-7 gap-1 text-center text-sm tabular-nums"></div>
+      <div class="flex items-center justify-between gap-2 mt-2 pt-2 border-t border-gray-200">
+        <button
+          id="dp-today-btn"
+          type="button"
+          class="px-3 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50 rounded cursor-pointer"
+        >
+          اليوم
+        </button>
+        <button
+          id="dp-clear-btn"
+          type="button"
+          class="px-3 py-1 text-xs font-medium text-slate-600 hover:bg-gray-100 rounded cursor-pointer"
+        >
+          مسح
+        </button>
+      </div>
+    </div>
+
+    <script>
+      (function () {
+        const STORAGE_KEY = 'mandoub_weekly_data';
+        const DAYS_COUNT = 7; // الصفوف 3 إلى 9
+        const ARABIC_MONTHS = [
+          'يناير',
+          'فبراير',
+          'مارس',
+          'أبريل',
+          'مايو',
+          'يونيو',
+          'يوليو',
+          'أغسطس',
+          'سبتمبر',
+          'أكتوبر',
+          'نوفمبر',
+          'ديسمبر',
+        ];
+
+        const tbody = document.getElementById('table-body');
+        const statusMsg = document.getElementById('status-msg');
+        const btnExport = document.getElementById('btn-export');
+        const btnExportPdf = document.getElementById('btn-export-pdf');
+        const btnClear = document.getElementById('btn-clear');
+
+        let branchInput = null;
+        let nameInput = null;
+        let unifyShiftBtn = null;
+        let unifyTimeBtn = null;
+        let seqDateBtn = null;
+        const rows = [];
+
+        function saveTableData() {
+          try {
+            const payload = {
+              branch: branchInput ? branchInput.value : '',
+              name: nameInput ? nameInput.value : '',
+              rows: rows.map(function (r) {
+                return {
+                  shift: r.shiftSelect.value,
+                  amount: r.amountInput.value,
+                  date: r.dateInput.value,
+                  from: {
+                    hour: r.from.hourInput.value,
+                    minute: r.from.minInput.value,
+                    period: r.from.periodSelect.value,
+                  },
+                  to: {
+                    hour: r.to.hourInput.value,
+                    minute: r.to.minInput.value,
+                    period: r.to.periodSelect.value,
+                  },
+                  orders: r.ordersInput.value,
+                  absent: r.absentCheckbox.checked,
+                };
+              }),
+            };
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+          } catch (_) {
+            // تجاهل أخطاء مساحة التخزين المحلية
+          }
+        }
+
+        function updateDateDisplay(rowObj) {
+          const formatted = formatArabicDate(rowObj.dateInput.value);
+          if (formatted) {
+            rowObj.dateDisplay.textContent = formatted;
+            rowObj.dateDisplay.className =
+              'absent-strike-target text-sm text-slate-900 font-medium whitespace-nowrap select-none';
+          } else {
+            rowObj.dateDisplay.textContent = 'اختر التاريخ';
+            rowObj.dateDisplay.className =
+              'absent-strike-target text-sm text-slate-400 whitespace-nowrap select-none';
+          }
+        }
+
+        function loadTableData() {
+          try {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            if (!raw) return;
+            const parsed = JSON.parse(raw);
+            if (!parsed || typeof parsed !== 'object') return;
+
+            if (branchInput && typeof parsed.branch === 'string') {
+              branchInput.value = parsed.branch;
+            }
+            if (nameInput && typeof parsed.name === 'string') {
+              nameInput.value = parsed.name;
+            }
+
+            if (Array.isArray(parsed.rows)) {
+              for (let i = 0; i < DAYS_COUNT && i < parsed.rows.length; i++) {
+                const saved = parsed.rows[i];
+                const r = rows[i];
+                if (!saved || !r) continue;
+
+                if (saved.shift === '120*7' || saved.shift === '70*5' || saved.shift === '') {
+                  r.shiftSelect.value = saved.shift;
+                }
+                if (saved.amount !== undefined && saved.amount !== null) {
+                  r.amountInput.value = String(saved.amount);
+                } else {
+                  applyShiftAmount(i);
+                }
+                if (typeof saved.date === 'string') {
+                  r.dateInput.value = saved.date;
+                  updateDateDisplay(r);
+                }
+                if (saved.from) {
+                  r.from.hourInput.value = saved.from.hour || '';
+                  r.from.minInput.value = saved.from.minute || '00';
+                  if (saved.from.period === 'صباحًا' || saved.from.period === 'مساءً') {
+                    r.from.periodSelect.value = saved.from.period;
+                  }
+                }
+                if (saved.to) {
+                  r.to.hourInput.value = saved.to.hour || '';
+                  r.to.minInput.value = saved.to.minute || '00';
+                  if (saved.to.period === 'صباحًا' || saved.to.period === 'مساءً') {
+                    r.to.periodSelect.value = saved.to.period;
+                  }
+                }
+                if (saved.orders !== undefined && saved.orders !== null) {
+                  r.ordersInput.value = String(saved.orders);
+                }
+                if (saved.absent === true) {
+                  r.absentCheckbox.checked = true;
+                  applyAbsentState(i, true, false);
+                } else {
+                  updateSurplusForRow(i);
+                }
+              }
+              updateTotals();
+            }
+          } catch (_) {
+            // تجاهل البيانات غير الصالحة في localStorage
+          }
+        }
+
+        function clearTableData() {
+          try {
+            localStorage.removeItem(STORAGE_KEY);
+          } catch (_) {
+            // تجاهل
+          }
+
+          if (branchInput) branchInput.value = '';
+          if (nameInput) nameInput.value = '';
+          if (unifyShiftBtn) unifyShiftBtn.textContent = 'توحيد';
+          if (unifyTimeBtn) unifyTimeBtn.textContent = 'توحيد';
+
+          for (let i = 0; i < DAYS_COUNT; i++) {
+            const r = rows[i];
+            r.absentCheckbox.checked = false;
+            r.prevAmount = null;
+            r.prevOrders = null;
+            applyAbsentState(i, false, false);
+            r.shiftSelect.value = '';
+            r.amountInput.value = '';
+            r.dateInput.value = '';
+            updateDateDisplay(r);
+            r.from.hourInput.value = '';
+            r.from.minInput.value = '00';
+            r.from.periodSelect.value = 'صباحًا';
+            r.to.hourInput.value = '';
+            r.to.minInput.value = '00';
+            r.to.periodSelect.value = 'صباحًا';
+            r.ordersInput.value = '';
+            updateSurplusForRow(i);
+          }
+
+          updateTotals();
+          statusMsg.textContent = 'تم تفريغ الجدول ومسح البيانات المحفوظة.';
+        }
+
+        function formatArabicDate(isoValue) {
+          if (!isoValue) return '';
+          const parts = isoValue.split('-');
+          if (parts.length !== 3) return '';
+          const monthIdx = parseInt(parts[1], 10) - 1;
+          const day = parseInt(parts[2], 10);
+          if (Number.isNaN(day) || monthIdx < 0 || monthIdx > 11) return '';
+          return day + '، ' + ARABIC_MONTHS[monthIdx];
+        }
+
+        function computeAmount(shiftValue) {
+          if (shiftValue === '120*7') return '120';
+          if (shiftValue === '70*5') return '70';
+          return '';
+        }
+
+        function computeSurplus(shiftValue, ordersRaw) {
+          if (shiftValue !== '120*7' && shiftValue !== '70*5') {
+            return 0;
+          }
+          if (ordersRaw === '' || ordersRaw === null || ordersRaw === undefined) {
+            return 0;
+          }
+          const orders = Number(ordersRaw);
+          if (!Number.isFinite(orders) || orders <= 0) {
+            return 0;
+          }
+          const threshold = shiftValue === '70*5' ? 5 : 15;
+          return orders > threshold ? orders - threshold : 0;
+        }
+
+        function applyShiftAmount(rowIndex) {
+          const r = rows[rowIndex];
+          if (r.absentCheckbox && r.absentCheckbox.checked) {
+            r.amountInput.value = '0';
+            return;
+          }
+          r.amountInput.value = computeAmount(r.shiftSelect.value);
+        }
+
+        function updateSurplusForRow(rowIndex) {
+          const r = rows[rowIndex];
+          if (r.absentCheckbox && r.absentCheckbox.checked) {
+            r.surplusInput.value = '0';
+            return;
+          }
+          r.surplusInput.value = computeSurplus(r.shiftSelect.value, r.ordersInput.value);
+        }
+
+        function applyAbsentState(rowIndex, isAbsent, shouldSave) {
+          const r = rows[rowIndex];
+          if (!r) return;
+
+          if (isAbsent) {
+            if (r.absentMergeLeftTd.parentNode !== r.tr) {
+              r.tr.insertBefore(r.absentMergeLeftTd, r.shiftTd);
+              r.tr.removeChild(r.shiftTd);
+              r.tr.removeChild(r.amountTd);
+            }
+            if (r.absentMergeRightTd.parentNode !== r.tr) {
+              r.tr.insertBefore(r.absentMergeRightTd, r.fromTd);
+              r.tr.removeChild(r.fromTd);
+              r.tr.removeChild(r.toTd);
+              r.tr.removeChild(r.ordersTd);
+              r.tr.removeChild(r.surplusTd);
+            }
+          } else {
+            if (r.absentMergeLeftTd.parentNode === r.tr) {
+              r.tr.insertBefore(r.shiftTd, r.absentMergeLeftTd);
+              r.tr.insertBefore(r.amountTd, r.absentMergeLeftTd);
+              r.tr.removeChild(r.absentMergeLeftTd);
+            }
+            if (r.absentMergeRightTd.parentNode === r.tr) {
+              r.tr.insertBefore(r.fromTd, r.absentMergeRightTd);
+              r.tr.insertBefore(r.toTd, r.absentMergeRightTd);
+              r.tr.insertBefore(r.ordersTd, r.absentMergeRightTd);
+              r.tr.insertBefore(r.surplusTd, r.absentMergeRightTd);
+              r.tr.removeChild(r.absentMergeRightTd);
+            }
+          }
+
+          updateTotals();
+          if (shouldSave !== false) {
+            saveTableData();
+          }
+        }
+
+        function updateTotals() {
+          let totalAmount = 0;
+          let totalOrders = 0;
+          let totalSurplus = 0;
+
+          for (let i = 0; i < DAYS_COUNT; i++) {
+            const r = rows[i];
+            if (r.absentCheckbox && r.absentCheckbox.checked) {
+              continue;
+            }
+            totalAmount += Number(r.amountInput.value) || 0;
+            const ordersVal = Number(r.ordersInput.value);
+            if (r.ordersInput.value !== '' && Number.isFinite(ordersVal)) {
+              totalOrders += ordersVal;
+            }
+            totalSurplus += Number(r.surplusInput.value) || 0;
+          }
+
+          document.getElementById('total-amount').textContent = totalAmount;
+          document.getElementById('total-orders').textContent = totalOrders;
+          document.getElementById('total-surplus').textContent = totalSurplus;
+        }
+
+        function createTimeControls(rowIndex, sideLabel) {
+          const wrap = document.createElement('div');
+          // الترتيب المطلوب من اليسار لليمين: الساعة (يسار) -> الدقيقة (وسط) -> صباحًا/مساءً (يمين)
+          wrap.dir = 'ltr';
+          wrap.className = 'flex items-center justify-center gap-1';
+
+          const hourInput = document.createElement('input');
+          hourInput.type = 'number';
+          hourInput.min = '1';
+          hourInput.max = '12';
+          hourInput.placeholder = 'س';
+          hourInput.setAttribute('aria-label', 'الساعة (' + sideLabel + ') - اليوم ' + (rowIndex + 1));
+          hourInput.className =
+            'w-12 py-1 px-1 text-center text-sm tabular-nums border border-gray-300 rounded bg-white focus:outline-none focus:border-blue-600';
+
+          const colon = document.createElement('span');
+          colon.textContent = ':';
+          colon.className = 'text-slate-500 font-bold';
+
+          const minInput = document.createElement('input');
+          minInput.type = 'number';
+          minInput.min = '0';
+          minInput.max = '59';
+          minInput.value = '00';
+          minInput.placeholder = '00';
+          minInput.setAttribute('aria-label', 'الدقيقة (' + sideLabel + ') - اليوم ' + (rowIndex + 1));
+          minInput.className =
+            'w-12 py-1 px-1 text-center text-sm tabular-nums border border-gray-300 rounded bg-white focus:outline-none focus:border-blue-600';
+
+          minInput.addEventListener('blur', function () {
+            if (minInput.value === '') {
+              minInput.value = '00';
+            } else {
+              const m = Math.max(0, Math.min(59, parseInt(minInput.value, 10) || 0));
+              minInput.value = String(m).padStart(2, '0');
+            }
+            saveTableData();
+          });
+
+          const periodSelect = document.createElement('select');
+          periodSelect.setAttribute('aria-label', 'الفترة (' + sideLabel + ') - اليوم ' + (rowIndex + 1));
+          periodSelect.className =
+            'py-1 px-1.5 text-xs border border-gray-300 rounded bg-white focus:outline-none focus:border-blue-600';
+
+          const optAm = document.createElement('option');
+          optAm.value = 'صباحًا';
+          optAm.textContent = 'صباحًا';
+
+          const optPm = document.createElement('option');
+          optPm.value = 'مساءً';
+          optPm.textContent = 'مساءً';
+
+          periodSelect.appendChild(optAm);
+          periodSelect.appendChild(optPm);
+
+          [hourInput, minInput, periodSelect].forEach(function (el) {
+            el.addEventListener('input', function () {
+              if (unifyTimeBtn) unifyTimeBtn.textContent = 'توحيد';
+              saveTableData();
+            });
+            el.addEventListener('change', function () {
+              if (unifyTimeBtn) unifyTimeBtn.textContent = 'توحيد';
+              saveTableData();
+            });
+          });
+
+          wrap.appendChild(hourInput);
+          wrap.appendChild(colon);
+          wrap.appendChild(minInput);
+          wrap.appendChild(periodSelect);
+
+          return {
+            wrap: wrap,
+            hourInput: hourInput,
+            minInput: minInput,
+            periodSelect: periodSelect,
+          };
+        }
+
+        function buildTable() {
+          tbody.innerHTML = '';
+
+          // الصفوف 3 إلى 9 (7 أيام)
+          for (let i = 0; i < DAYS_COUNT; i++) {
+            const tr = document.createElement('tr');
+
+            // 1. الفرع + 2. الاسم (مدمجان عموديًا من الصف 3 إلى الصف 10: rowspan="8")
+            if (i === 0) {
+              const branchTd = document.createElement('td');
+              branchTd.rowSpan = 8;
+              branchTd.className = 'p-2 align-middle bg-white';
+              branchInput = document.createElement('input');
+              branchInput.type = 'text';
+              branchInput.placeholder = 'اكتب الفرع';
+              branchInput.setAttribute('aria-label', 'الفرع');
+              branchInput.className =
+                'w-full py-2 px-2 text-center text-sm border border-gray-300 rounded bg-white focus:outline-none focus:border-blue-600';
+              branchInput.addEventListener('input', saveTableData);
+              branchTd.appendChild(branchInput);
+              tr.appendChild(branchTd);
+
+              const nameTd = document.createElement('td');
+              nameTd.rowSpan = 8;
+              nameTd.className = 'p-2 align-middle bg-white';
+              nameInput = document.createElement('input');
+              nameInput.type = 'text';
+              nameInput.placeholder = 'اكتب الاسم';
+              nameInput.setAttribute('aria-label', 'الاسم');
+              nameInput.className =
+                'w-full py-2 px-2 text-center text-sm border border-gray-300 rounded bg-white focus:outline-none focus:border-blue-600';
+              nameInput.addEventListener('input', saveTableData);
+              nameTd.appendChild(nameInput);
+              tr.appendChild(nameTd);
+            }
+
+            // 3. الدوام (<select> بخيارات: اختر... / 120*7 / 70*5)
+            const shiftTd = document.createElement('td');
+            shiftTd.className = 'p-1.5 align-middle';
+            const shiftSelect = document.createElement('select');
+            shiftSelect.dir = 'ltr';
+            shiftSelect.setAttribute('aria-label', 'الدوام - اليوم ' + (i + 1));
+            shiftSelect.className =
+              'w-full py-1.5 px-2 text-center text-sm tabular-nums border border-gray-300 rounded bg-white focus:outline-none focus:border-blue-600';
+
+            const optEmpty = document.createElement('option');
+            optEmpty.value = '';
+            optEmpty.textContent = 'اختر...';
+
+            const opt120 = document.createElement('option');
+            opt120.value = '120*7';
+            opt120.textContent = '120*7';
+
+            const opt70 = document.createElement('option');
+            opt70.value = '70*5';
+            opt70.textContent = '70*5';
+
+            shiftSelect.appendChild(optEmpty);
+            shiftSelect.appendChild(opt120);
+            shiftSelect.appendChild(opt70);
+            shiftTd.appendChild(shiftSelect);
+            tr.appendChild(shiftTd);
+
+            // 4. المبلغ (<input type="number"> قابل للتعديل اليدوي الحر، ويتعبّى تلقائيًا عند اختيار الدوام)
+            const amountTd = document.createElement('td');
+            amountTd.className = 'p-1.5 align-middle';
+            const amountInput = document.createElement('input');
+            amountInput.type = 'number';
+            amountInput.step = 'any';
+            amountInput.placeholder = '0';
+            amountInput.setAttribute('aria-label', 'المبلغ - اليوم ' + (i + 1));
+            amountInput.className =
+              'w-full py-1.5 px-2 text-center text-sm tabular-nums border border-gray-300 rounded bg-white text-slate-900 focus:outline-none focus:border-blue-600';
+            amountTd.appendChild(amountInput);
+            tr.appendChild(amountTd);
+
+            // 5. التاريخ + خيار "غياب" بجانب التاريخ
+            const dateTd = document.createElement('td');
+            dateTd.className = 'p-1.5 align-middle';
+            const dateRowBox = document.createElement('div');
+            dateRowBox.className = 'flex items-center justify-center gap-1.5';
+
+            const dateWrap = document.createElement('div');
+            dateWrap.tabIndex = 0;
+            dateWrap.setAttribute('role', 'button');
+            dateWrap.setAttribute('aria-label', 'اختيار التاريخ - اليوم ' + (i + 1));
+            dateWrap.className =
+              'relative flex-1 flex items-center justify-center min-h-[34px] min-w-[100px] px-2 border border-gray-300 rounded bg-white cursor-pointer hover:border-blue-500 focus:outline-none focus:border-blue-600';
+
+            const dateDisplay = document.createElement('span');
+            dateDisplay.className = 'absent-strike-target text-sm text-slate-400 whitespace-nowrap select-none';
+            dateDisplay.textContent = 'اختر التاريخ';
+
+            const dateInput = document.createElement('input');
+            dateInput.type = 'date';
+            dateInput.tabIndex = -1;
+            dateInput.setAttribute('aria-hidden', 'true');
+            dateInput.className = 'sr-only';
+
+            dateWrap.addEventListener('click', function (e) {
+              e.stopPropagation();
+              openDatePicker(i, dateWrap);
+            });
+
+            dateWrap.addEventListener('keydown', function (e) {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                openDatePicker(i, dateWrap);
+              }
+            });
+
+            dateInput.addEventListener('change', function () {
+              updateDateDisplay(rows[i]);
+              saveTableData();
+            });
+
+            dateWrap.appendChild(dateDisplay);
+            dateWrap.appendChild(dateInput);
+
+            const absentLabel = document.createElement('label');
+            absentLabel.className =
+              'no-print inline-flex items-center gap-1 px-1.5 py-1 rounded border border-gray-300 bg-white text-xs font-medium text-slate-700 cursor-pointer select-none whitespace-nowrap hover:bg-red-50';
+            const absentCheckbox = document.createElement('input');
+            absentCheckbox.type = 'checkbox';
+            absentCheckbox.setAttribute('aria-label', 'غياب - اليوم ' + (i + 1));
+            absentCheckbox.className = 'w-3.5 h-3.5 accent-red-500 cursor-pointer';
+
+            const absentText = document.createElement('span');
+            absentText.textContent = 'غياب';
+
+            absentCheckbox.addEventListener('change', function () {
+              applyAbsentState(i, absentCheckbox.checked, true);
+            });
+
+            absentLabel.appendChild(absentCheckbox);
+            absentLabel.appendChild(absentText);
+
+            dateRowBox.appendChild(dateWrap);
+            dateRowBox.appendChild(absentLabel);
+            dateTd.appendChild(dateRowBox);
+            tr.appendChild(dateTd);
+
+            // 6. وقت الحضور والانصراف ("من" و "إلى")
+            const fromTd = document.createElement('td');
+            fromTd.className = 'p-1.5 align-middle';
+            const fromControls = createTimeControls(i, 'من');
+            fromTd.appendChild(fromControls.wrap);
+            tr.appendChild(fromTd);
+
+            const toTd = document.createElement('td');
+            toTd.className = 'p-1.5 align-middle';
+            const toControls = createTimeControls(i, 'إلى');
+            toTd.appendChild(toControls.wrap);
+            tr.appendChild(toTd);
+
+            // 7. عدد الطلبات
+            const ordersTd = document.createElement('td');
+            ordersTd.className = 'p-1.5 align-middle';
+            const ordersInput = document.createElement('input');
+            ordersInput.type = 'number';
+            ordersInput.min = '0';
+            ordersInput.step = '1';
+            ordersInput.placeholder = '0';
+            ordersInput.setAttribute('aria-label', 'عدد الطلبات - اليوم ' + (i + 1));
+            ordersInput.className =
+              'w-full py-1.5 px-2 text-center text-sm tabular-nums border border-gray-300 rounded bg-white focus:outline-none focus:border-blue-600';
+            ordersTd.appendChild(ordersInput);
+            tr.appendChild(ordersTd);
+
+            // 8. الفائض (readonly)
+            const surplusTd = document.createElement('td');
+            surplusTd.className = 'p-1.5 align-middle bg-gray-50';
+            const surplusInput = document.createElement('input');
+            surplusInput.type = 'text';
+            surplusInput.readOnly = true;
+            surplusInput.setAttribute('aria-label', 'الفائض - اليوم ' + (i + 1));
+            surplusInput.className =
+              'w-full py-1.5 px-2 text-center text-sm font-medium tabular-nums bg-transparent text-slate-900 focus:outline-none cursor-default';
+            surplusTd.appendChild(surplusInput);
+            tr.appendChild(surplusTd);
+
+            const absentMergeLeftTd = document.createElement('td');
+            absentMergeLeftTd.colSpan = 2;
+            absentMergeLeftTd.className = 'absent-merged-cell p-2 align-middle text-center font-bold text-red-950';
+            absentMergeLeftTd.style.backgroundColor = '#fca5a5';
+            absentMergeLeftTd.textContent = 'غياب';
+
+            const absentMergeRightTd = document.createElement('td');
+            absentMergeRightTd.colSpan = 4;
+            absentMergeRightTd.className = 'absent-merged-cell p-2 align-middle text-center font-bold text-red-950';
+            absentMergeRightTd.style.backgroundColor = '#fca5a5';
+            absentMergeRightTd.textContent = 'غياب';
+
+            rows.push({
+              tr: tr,
+              shiftTd: shiftTd,
+              amountTd: amountTd,
+              dateTd: dateTd,
+              dateWrap: dateWrap,
+              fromTd: fromTd,
+              toTd: toTd,
+              ordersTd: ordersTd,
+              surplusTd: surplusTd,
+              absentMergeLeftTd: absentMergeLeftTd,
+              absentMergeRightTd: absentMergeRightTd,
+              shiftSelect: shiftSelect,
+              amountInput: amountInput,
+              dateInput: dateInput,
+              dateDisplay: dateDisplay,
+              absentCheckbox: absentCheckbox,
+              from: fromControls,
+              to: toControls,
+              ordersInput: ordersInput,
+              surplusInput: surplusInput,
+            });
+
+            // أحداث التحديث التلقائي للصف والإجماليات والحفظ في localStorage
+            shiftSelect.addEventListener('change', function () {
+              if (unifyShiftBtn) unifyShiftBtn.textContent = 'توحيد';
+              applyShiftAmount(i);
+              updateSurplusForRow(i);
+              updateTotals();
+              saveTableData();
+            });
+
+            amountInput.addEventListener('input', function () {
+              updateTotals();
+              saveTableData();
+            });
+
+            ordersInput.addEventListener('input', function () {
+              updateSurplusForRow(i);
+              updateTotals();
+              saveTableData();
+            });
+
+            tbody.appendChild(tr);
+            updateSurplusForRow(i);
+          }
+
+          // الصف 10: صف الإجمالي الأسبوعي (الفرع والاسم مدموجان من الصف 3)
+          const totalTr = document.createElement('tr');
+          totalTr.className = 'font-bold';
+
+          // خلية الدوام: زر "توحيد" أسفل العمود
+          const shiftTotalTd = document.createElement('td');
+          shiftTotalTd.className = 'p-2 align-middle bg-white';
+          unifyShiftBtn = document.createElement('button');
+          unifyShiftBtn.type = 'button';
+          unifyShiftBtn.textContent = 'توحيد';
+          unifyShiftBtn.className =
+            'no-print w-full py-1.5 px-3 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500';
+          unifyShiftBtn.onclick = unifyShiftColumn;
+          shiftTotalTd.appendChild(unifyShiftBtn);
+          totalTr.appendChild(shiftTotalTd);
+
+          // خلية إجمالي المبلغ (bg-yellow-200)
+          const amountTotalTd = document.createElement('td');
+          amountTotalTd.id = 'total-amount';
+          amountTotalTd.className = 'py-2.5 px-2 bg-yellow-200 text-slate-900 tabular-nums align-middle';
+          amountTotalTd.textContent = '0';
+          totalTr.appendChild(amountTotalTd);
+
+          // خلية التاريخ في صف الإجمالي: العنوان + زر "تعبئة تسلسلية" أسفل عمود التاريخ
+          const dateTotalTd = document.createElement('td');
+          dateTotalTd.className = 'p-2 bg-white text-slate-600 align-middle';
+          const dateTotalWrap = document.createElement('div');
+          dateTotalWrap.className = 'flex flex-col items-center justify-center gap-1';
+          const dateTotalLabel = document.createElement('span');
+          dateTotalLabel.textContent = 'الإجمالي الأسبوعي';
+          dateTotalLabel.className = 'text-xs font-bold text-slate-700';
+          seqDateBtn = document.createElement('button');
+          seqDateBtn.type = 'button';
+          seqDateBtn.textContent = 'تعبئة تسلسلية';
+          seqDateBtn.className =
+            'no-print px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500';
+          seqDateBtn.onclick = fillDatesSequentially;
+          dateTotalWrap.appendChild(dateTotalLabel);
+          dateTotalWrap.appendChild(seqDateBtn);
+          dateTotalTd.appendChild(dateTotalWrap);
+          totalTr.appendChild(dateTotalTd);
+
+          // خليتا "من" و"إلى" مدمجتان: زر "توحيد" أسفل عمود وقت الحضور والانصراف بالكامل
+          const timeTotalTd = document.createElement('td');
+          timeTotalTd.colSpan = 2;
+          timeTotalTd.className = 'p-2 align-middle bg-white';
+          unifyTimeBtn = document.createElement('button');
+          unifyTimeBtn.type = 'button';
+          unifyTimeBtn.textContent = 'توحيد';
+          unifyTimeBtn.className =
+            'no-print px-6 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500';
+          unifyTimeBtn.onclick = unifyTimeColumns;
+          timeTotalTd.appendChild(unifyTimeBtn);
+          totalTr.appendChild(timeTotalTd);
+
+          // خلية إجمالي عدد الطلبات (bg-yellow-200)
+          const ordersTotalTd = document.createElement('td');
+          ordersTotalTd.id = 'total-orders';
+          ordersTotalTd.className = 'py-2.5 px-2 bg-yellow-200 text-slate-900 tabular-nums align-middle';
+          ordersTotalTd.textContent = '0';
+          totalTr.appendChild(ordersTotalTd);
+
+          // خلية إجمالي الفائض (bg-yellow-200)
+          const surplusTotalTd = document.createElement('td');
+          surplusTotalTd.id = 'total-surplus';
+          surplusTotalTd.className = 'py-2.5 px-2 bg-yellow-200 text-slate-900 tabular-nums align-middle';
+          surplusTotalTd.textContent = '0';
+          totalTr.appendChild(surplusTotalTd);
+
+          tbody.appendChild(totalTr);
+          updateTotals();
+        }
+
+        function fillDatesSequentially() {
+          const firstIso = rows[0] ? rows[0].dateInput.value : '';
+          if (!firstIso) {
+            statusMsg.textContent = 'يرجى اختيار تاريخ الصف الأول أولاً لتعبئة باقي الأيام تسلسليًا.';
+            if (rows[0] && rows[0].dateWrap) {
+              rows[0].dateWrap.focus();
+            }
+            return;
+          }
+
+          const parts = firstIso.split('-');
+          if (parts.length !== 3) return;
+          const baseYear = parseInt(parts[0], 10);
+          const baseMonth = parseInt(parts[1], 10) - 1;
+          const baseDay = parseInt(parts[2], 10);
+
+          for (let i = 1; i < DAYS_COUNT; i++) {
+            const nextDate = new Date(baseYear, baseMonth, baseDay + i);
+            rows[i].dateInput.value = toIsoDate(
+              nextDate.getFullYear(),
+              nextDate.getMonth(),
+              nextDate.getDate()
+            );
+            updateDateDisplay(rows[i]);
+          }
+
+          saveTableData();
+          statusMsg.textContent = 'تمت تعبئة التواريخ تسلسليًا لجميع أيام الأسبوع.';
+        }
+
+        function unifyShiftColumn() {
+          const firstShift = rows[0].shiftSelect.value;
+          for (let i = 0; i < DAYS_COUNT; i++) {
+            rows[i].shiftSelect.value = firstShift;
+            applyShiftAmount(i);
+            updateSurplusForRow(i);
+          }
+          updateTotals();
+          saveTableData();
+          unifyShiftBtn.textContent = 'توحيد ✓';
+          statusMsg.textContent = 'تم توحيد الدوام لجميع أيام الأسبوع.';
+        }
+
+        function unifyTimeColumns() {
+          const firstFromHour = rows[0].from.hourInput.value;
+          const firstFromMin = rows[0].from.minInput.value || '00';
+          const firstFromPeriod = rows[0].from.periodSelect.value;
+
+          const firstToHour = rows[0].to.hourInput.value;
+          const firstToMin = rows[0].to.minInput.value || '00';
+          const firstToPeriod = rows[0].to.periodSelect.value;
+
+          for (let i = 1; i < DAYS_COUNT; i++) {
+            rows[i].from.hourInput.value = firstFromHour;
+            rows[i].from.minInput.value = firstFromMin;
+            rows[i].from.periodSelect.value = firstFromPeriod;
+
+            rows[i].to.hourInput.value = firstToHour;
+            rows[i].to.minInput.value = firstToMin;
+            rows[i].to.periodSelect.value = firstToPeriod;
+          }
+          saveTableData();
+          unifyTimeBtn.textContent = 'توحيد ✓';
+          statusMsg.textContent = 'تم توحيد وقت الحضور والانصراف لجميع أيام الأسبوع.';
+        }
+
+        function formatTimeForExport(ctrl) {
+          const h = ctrl.hourInput.value.trim();
+          const m = (ctrl.minInput.value.trim() || '00').padStart(2, '0');
+          const p = ctrl.periodSelect.value;
+          if (!h) return '';
+          return h + ':' + m + ' ' + p;
+        }
+
+        async function exportToExcel() {
+          if (typeof ExcelJS === 'undefined' || typeof saveAs === 'undefined') {
+            statusMsg.textContent =
+              'تعذر تحميل مكتبة التصدير (ExcelJS / FileSaver)، يرجى التحقق من الاتصال بالإنترنت.';
+            return;
+          }
+
+          const branchVal = branchInput ? branchInput.value.trim() : '';
+          const nameVal = nameInput ? nameInput.value.trim() : '';
+
+          const workbook = new ExcelJS.Workbook();
+          const worksheet = workbook.addWorksheet('الراتب الأسبوعي', {
+            views: [{ rightToLeft: true }],
+          });
+
+          worksheet.columns = [
+            { width: 16 },
+            { width: 18 },
+            { width: 12 },
+            { width: 12 },
+            { width: 16 },
+            { width: 16 },
+            { width: 16 },
+            { width: 14 },
+            { width: 12 },
+          ];
+
+          // الصف 1: العناوين الرئيسية
+          worksheet.getRow(1).values = [
+            'الفرع',
+            'الاسم',
+            'الدوام',
+            'المبلغ',
+            'التاريخ',
+            'وقت الحضور والانصراف',
+            '',
+            'عدد الطلبات',
+            'الفائض',
+          ];
+
+          // الصف 2: الصف الفرعي لوقت الحضور والانصراف
+          worksheet.getRow(2).values = ['', '', '', '', '', 'من', 'إلى', '', ''];
+
+          // الصفوف 3 إلى 9: أيام الأسبوع السبعة
+          for (let i = 0; i < DAYS_COUNT; i++) {
+            const r = rows[i];
+            const dateText = formatArabicDate(r.dateInput.value);
+
+            if (r.absentCheckbox.checked) {
+              worksheet.getRow(i + 3).values = [
+                i === 0 ? branchVal : '',
+                i === 0 ? nameVal : '',
+                'غياب',
+                '',
+                dateText,
+                'غياب',
+                '',
+                '',
+                '',
+              ];
+            } else {
+              const ordersNum = r.ordersInput.value === '' ? 0 : Number(r.ordersInput.value) || 0;
+              const amountNum = Number(r.amountInput.value) || 0;
+              const surplusNum = Number(r.surplusInput.value) || 0;
+
+              worksheet.getRow(i + 3).values = [
+                i === 0 ? branchVal : '',
+                i === 0 ? nameVal : '',
+                r.shiftSelect.value,
+                amountNum,
+                dateText,
+                formatTimeForExport(r.from),
+                formatTimeForExport(r.to),
+                ordersNum,
+                surplusNum,
+              ];
+            }
+          }
+
+          // الصف 10: الإجمالي الأسبوعي
+          worksheet.getRow(10).values = [
+            '',
+            '',
+            '',
+            Number(document.getElementById('total-amount').textContent) || 0,
+            'الإجمالي الأسبوعي',
+            '',
+            '',
+            Number(document.getElementById('total-orders').textContent) || 0,
+            Number(document.getElementById('total-surplus').textContent) || 0,
+          ];
+
+          // دمج خلايا العناوين ودمج عمودي الفرع والاسم عبر الصفوف 3-10
+          worksheet.mergeCells('A1:A2');
+          worksheet.mergeCells('B1:B2');
+          worksheet.mergeCells('C1:C2');
+          worksheet.mergeCells('D1:D2');
+          worksheet.mergeCells('E1:E2');
+          worksheet.mergeCells('F1:G1');
+          worksheet.mergeCells('H1:H2');
+          worksheet.mergeCells('I1:I2');
+          worksheet.mergeCells('A3:A10');
+          worksheet.mergeCells('B3:B10');
+
+          // دمج خلايا صفوف الغياب في Excel بنفس شكل الجدول
+          for (let i = 0; i < DAYS_COUNT; i++) {
+            if (rows[i].absentCheckbox.checked) {
+              const excelRow = i + 3;
+              worksheet.mergeCells('C' + excelRow + ':D' + excelRow);
+              worksheet.mergeCells('F' + excelRow + ':I' + excelRow);
+            }
+          }
+
+          const thinGrayBorder = {
+            top: { style: 'thin', color: { argb: 'FFD1D5DB' } },
+            bottom: { style: 'thin', color: { argb: 'FFD1D5DB' } },
+            left: { style: 'thin', color: { argb: 'FFD1D5DB' } },
+            right: { style: 'thin', color: { argb: 'FFD1D5DB' } },
+          };
+
+          const headerFill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FF1E293B' },
+          };
+
+          const headerFont = {
+            name: 'Tajawal',
+            size: 11,
+            bold: true,
+            color: { argb: 'FFFFFFFF' },
+          };
+
+          const totalHighlightFill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFFEF08A' },
+          };
+
+          const absentRowFill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFFCA5A5' },
+          };
+
+          const calculatedTotalCols = new Set([4, 8, 9]);
+
+          for (let rowNum = 1; rowNum <= 10; rowNum++) {
+            const row = worksheet.getRow(rowNum);
+            row.height = rowNum <= 2 ? 24 : 22;
+            const isAbsentRow =
+              rowNum >= 3 &&
+              rowNum <= 9 &&
+              rows[rowNum - 3] &&
+              rows[rowNum - 3].absentCheckbox.checked;
+
+            for (let colNum = 1; colNum <= 9; colNum++) {
+              const cell = row.getCell(colNum);
+              cell.border = thinGrayBorder;
+              cell.alignment = { horizontal: 'center', vertical: 'middle' };
+
+              if (rowNum === 1 || rowNum === 2) {
+                cell.fill = headerFill;
+                cell.font = headerFont;
+              } else if (rowNum === 10) {
+                if (calculatedTotalCols.has(colNum)) {
+                  cell.fill = totalHighlightFill;
+                  cell.font = {
+                    name: 'Tajawal',
+                    size: 11,
+                    bold: true,
+                    color: { argb: 'FF0F172A' },
+                  };
+                } else {
+                  cell.font = {
+                    name: 'Tajawal',
+                    size: 11,
+                    bold: colNum === 5,
+                    color: { argb: 'FF334155' },
+                  };
+                }
+              } else if (isAbsentRow && colNum >= 3 && colNum !== 5) {
+                cell.fill = absentRowFill;
+                cell.font = {
+                  name: 'Tajawal',
+                  size: 11,
+                  bold: true,
+                  color: { argb: 'FF7F1D1D' },
+                };
+              } else {
+                cell.font = {
+                  name: 'Tajawal',
+                  size: 11,
+                  color: { argb: 'FF0F172A' },
+                };
+              }
+            }
+          }
+
+          const buffer = await workbook.xlsx.writeBuffer();
+          const blob = new Blob([buffer], {
+            type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          });
+
+          const repName = nameVal
+            ? nameVal.replace(/[\\/:*?"<>|]/g, '').trim().replace(/\s+/g, '_')
+            : 'مندوب';
+          const dateTag = new Date().toISOString().slice(0, 10);
+          saveAs(blob, 'الراتب_الأسبوعي_' + repName + '_' + dateTag + '.xlsx');
+          statusMsg.textContent = 'تم تصدير الجدول إلى ملف Excel بنجاح.';
+        }
+
+        async function exportToPdf() {
+          if (typeof html2canvas === 'undefined' || !window.jspdf || !window.jspdf.jsPDF) {
+            statusMsg.textContent =
+              'تعذر تحميل مكتبة التصدير (jsPDF / html2canvas)، يرجى التحقق من الاتصال بالإنترنت.';
+            return;
+          }
+
+          const tableEl = document.getElementById('salary-table');
+          if (!tableEl) return;
+
+          btnExportPdf.disabled = true;
+          statusMsg.textContent = 'جاري تجهيز ملف PDF...';
+
+          const noPrintEls = Array.from(tableEl.querySelectorAll('.no-print'));
+
+          try {
+            closeDatePicker();
+
+            if (document.fonts && document.fonts.ready) {
+              await document.fonts.ready;
+            }
+
+            // إخفاء جميع عناصر التحكم التفاعلية (.no-print: أزرار توحيد، تعبئة تسلسلية، وخيار غياب) مؤقتًا قبل الالتقاط
+            noPrintEls.forEach(function (el) {
+              el.style.display = 'none';
+            });
+
+            const origControls = Array.from(tableEl.querySelectorAll('input, select'));
+            const controlValues = origControls.map(function (el) {
+              if (el.tagName === 'SELECT') {
+                return el.options[el.selectedIndex] ? el.options[el.selectedIndex].textContent : '';
+              }
+              return el.value;
+            });
+
+            const canvas = await html2canvas(tableEl, {
+              scale: 3,
+              useCORS: true,
+              backgroundColor: '#ffffff',
+              scrollX: 0,
+              scrollY: 0,
+              onclone: function (clonedDoc) {
+                const clonedTable = clonedDoc.getElementById('salary-table');
+                if (!clonedTable) return;
+
+                // التأكد من عدم اقتصاص الجدول أفقياً على الشاشات الصغيرة
+                const wrapper = clonedTable.parentElement;
+                if (wrapper) {
+                  wrapper.style.overflow = 'visible';
+                  wrapper.style.width = 'max-content';
+                }
+
+                // تثبيت حدود الخلايا الداكنة الواضحة داخل نسخة الـ PDF
+                clonedTable.style.borderCollapse = 'collapse';
+
+                // منع تداخل خلفية أي صف <tr> مع خلايا rowspan (في الرأس والجسم)
+                const allRows = clonedTable.querySelectorAll('thead tr, tbody tr');
+                allRows.forEach(function (tr) {
+                  tr.style.backgroundColor = 'transparent';
+                });
+
+                // تعزيز وضوح نص صف العناوين الداكن في الصورة الملتقطة
+                const headerCells = clonedTable.querySelectorAll('thead th');
+                headerCells.forEach(function (th) {
+                  th.style.backgroundColor = '#1e293b';
+                  th.style.color = '#ffffff';
+                  th.style.fontWeight = '700';
+                  th.style.opacity = '1';
+                  th.style.border = '1px solid #4b5563';
+                  th.style.paddingTop = '12px';
+                  th.style.paddingBottom = '12px';
+                });
+
+                // زيادة المساحة الرأسية للصفوف وتثبيت الحدود لكل خلايا الجسم (بما فيها خلايا rowspan)
+                const bodyCells = clonedTable.querySelectorAll('tbody td');
+                bodyCells.forEach(function (td) {
+                  td.style.border = '1px solid #4b5563';
+                  td.style.borderRadius = '0';
+                  td.style.paddingTop = '13px';
+                  td.style.paddingBottom = '13px';
+                  if (td.hasAttribute('rowspan')) {
+                    td.style.backgroundColor = 'transparent';
+                  }
+                  if (td.classList.contains('absent-merged-cell')) {
+                    td.style.backgroundColor = '#fca5a5';
+                  }
+                });
+
+                // استبدال حقول الإدخال والقوائم المنسدلة بنصوص ثابتة واضحة أثناء التصوير
+                const clonedControls = Array.from(clonedTable.querySelectorAll('input, select'));
+                clonedControls.forEach(function (el, idx) {
+                  if (el.type === 'date') {
+                    el.style.display = 'none';
+                    return;
+                  }
+                  if (el.type === 'checkbox') {
+                    return;
+                  }
+                  const span = clonedDoc.createElement('span');
+                  span.textContent = controlValues[idx] || '';
+                  if (el.dir) span.dir = el.dir;
+                  span.className = el.className;
+                  span.style.display = 'inline-block';
+                  span.style.minHeight = '24px';
+                  span.style.lineHeight = '24px';
+                  span.style.borderColor = 'transparent';
+                  span.style.backgroundColor = 'transparent';
+                  el.parentNode.replaceChild(span, el);
+                });
+              },
+            });
+
+            // إعادة إظهار عناصر .no-print فورًا بعد الالتقاط
+            noPrintEls.forEach(function (el) {
+              el.style.display = '';
+            });
+
+            const imgData = canvas.toDataURL('image/png');
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF({
+              orientation: 'landscape',
+              unit: 'mm',
+              format: 'a4',
+            });
+
+            const pageWidth = pdf.internal.pageSize.getWidth(); // 297mm
+            const pageHeight = pdf.internal.pageSize.getHeight(); // 210mm
+            const margin = 6;
+            const maxWidth = pageWidth - margin * 2;
+            const maxHeight = pageHeight - margin * 2;
+            const imgAspectRatio = canvas.width / canvas.height;
+
+            let renderWidth = maxWidth;
+            let renderHeight = renderWidth / imgAspectRatio;
+
+            if (renderHeight > maxHeight) {
+              renderHeight = maxHeight;
+              renderWidth = renderHeight * imgAspectRatio;
+            }
+
+            const offsetX = (pageWidth - renderWidth) / 2;
+            const offsetY = (pageHeight - renderHeight) / 2;
+
+            pdf.addImage(imgData, 'PNG', offsetX, offsetY, renderWidth, renderHeight);
+
+            const nameVal = nameInput ? nameInput.value.trim() : '';
+            const repName = nameVal
+              ? nameVal.replace(/[\\/:*?"<>|]/g, '').trim().replace(/\s+/g, '_')
+              : 'مندوب';
+            const dateTag = new Date().toISOString().slice(0, 10);
+            pdf.save('الراتب_الأسبوعي_' + repName + '_' + dateTag + '.pdf');
+            statusMsg.textContent = 'تم تصدير الجدول إلى ملف PDF بنجاح.';
+          } catch (_) {
+            statusMsg.textContent = 'حدث خطأ أثناء إنشاء ملف PDF، يرجى المحاولة مرة أخرى.';
+          } finally {
+            noPrintEls.forEach(function (el) {
+              el.style.display = '';
+            });
+            btnExportPdf.disabled = false;
+          }
+        }
+
+        // منطق منتقي التاريخ العام المتوافق مع MacBook Air M2 وكل الأجهزة والمتصفحات
+        const datePopover = document.getElementById('date-picker-popover');
+        const dpMonthYear = document.getElementById('dp-month-year');
+        const dpDaysGrid = document.getElementById('dp-days-grid');
+        const dpPrevBtn = document.getElementById('dp-prev-month');
+        const dpNextBtn = document.getElementById('dp-next-month');
+        const dpTodayBtn = document.getElementById('dp-today-btn');
+        const dpClearBtn = document.getElementById('dp-clear-btn');
+
+        let activeDateRowIdx = null;
+        let dpViewYear = new Date().getFullYear();
+        let dpViewMonth = new Date().getMonth();
+
+        function toIsoDate(year, monthIndex, day) {
+          return (
+            year +
+            '-' +
+            String(monthIndex + 1).padStart(2, '0') +
+            '-' +
+            String(day).padStart(2, '0')
+          );
+        }
+
+        function renderDatePickerGrid() {
+          dpMonthYear.textContent = ARABIC_MONTHS[dpViewMonth] + ' ' + dpViewYear;
+          dpDaysGrid.innerHTML = '';
+
+          const firstWeekday = new Date(dpViewYear, dpViewMonth, 1).getDay();
+          const daysInMonth = new Date(dpViewYear, dpViewMonth + 1, 0).getDate();
+
+          const selectedIso =
+            activeDateRowIdx !== null && rows[activeDateRowIdx]
+              ? rows[activeDateRowIdx].dateInput.value
+              : '';
+          const today = new Date();
+          const todayIso = toIsoDate(today.getFullYear(), today.getMonth(), today.getDate());
+
+          for (let blank = 0; blank < firstWeekday; blank++) {
+            const emptyCell = document.createElement('span');
+            dpDaysGrid.appendChild(emptyCell);
+          }
+
+          for (let d = 1; d <= daysInMonth; d++) {
+            const cellIso = toIsoDate(dpViewYear, dpViewMonth, d);
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.textContent = String(d);
+
+            const isSelected = cellIso === selectedIso;
+            const isToday = cellIso === todayIso;
+
+            let cls = 'py-1.5 rounded text-sm cursor-pointer ';
+            if (isSelected) {
+              cls += 'bg-blue-600 text-white font-bold';
+            } else if (isToday) {
+              cls += 'border border-blue-500 text-blue-700 font-bold hover:bg-blue-50';
+            } else {
+              cls += 'text-slate-800 hover:bg-gray-100';
+            }
+            btn.className = cls;
+
+            btn.addEventListener('click', function (e) {
+              e.stopPropagation();
+              if (activeDateRowIdx !== null && rows[activeDateRowIdx]) {
+                rows[activeDateRowIdx].dateInput.value = cellIso;
+                updateDateDisplay(rows[activeDateRowIdx]);
+                saveTableData();
+              }
+              closeDatePicker();
+            });
+
+            dpDaysGrid.appendChild(btn);
+          }
+        }
+
+        function positionDatePicker(anchorEl) {
+          const rect = anchorEl.getBoundingClientRect();
+          const popWidth = 288;
+          const popHeight = datePopover.offsetHeight || 280;
+
+          let left = rect.left + rect.width / 2 - popWidth / 2;
+          left = Math.max(8, Math.min(left, window.innerWidth - popWidth - 8));
+
+          let top = rect.bottom + 6;
+          if (top + popHeight > window.innerHeight - 8) {
+            top = Math.max(8, rect.top - popHeight - 6);
+          }
+
+          datePopover.style.left = left + 'px';
+          datePopover.style.top = top + 'px';
+        }
+
+        function openDatePicker(rowIndex, anchorEl) {
+          activeDateRowIdx = rowIndex;
+          const currentVal = rows[rowIndex] ? rows[rowIndex].dateInput.value : '';
+          if (currentVal) {
+            const parts = currentVal.split('-');
+            if (parts.length === 3) {
+              const y = parseInt(parts[0], 10);
+              const m = parseInt(parts[1], 10) - 1;
+              if (!Number.isNaN(y) && !Number.isNaN(m) && m >= 0 && m <= 11) {
+                dpViewYear = y;
+                dpViewMonth = m;
+              }
+            }
+          } else {
+            const now = new Date();
+            dpViewYear = now.getFullYear();
+            dpViewMonth = now.getMonth();
+          }
+
+          renderDatePickerGrid();
+          datePopover.classList.remove('hidden');
+          positionDatePicker(anchorEl);
+        }
+
+        function closeDatePicker() {
+          datePopover.classList.add('hidden');
+          activeDateRowIdx = null;
+        }
+
+        datePopover.addEventListener('click', function (e) {
+          e.stopPropagation();
+        });
+
+        dpPrevBtn.addEventListener('click', function () {
+          dpViewMonth -= 1;
+          if (dpViewMonth < 0) {
+            dpViewMonth = 11;
+            dpViewYear -= 1;
+          }
+          renderDatePickerGrid();
+        });
+
+        dpNextBtn.addEventListener('click', function () {
+          dpViewMonth += 1;
+          if (dpViewMonth > 11) {
+            dpViewMonth = 0;
+            dpViewYear += 1;
+          }
+          renderDatePickerGrid();
+        });
+
+        dpTodayBtn.addEventListener('click', function () {
+          if (activeDateRowIdx !== null && rows[activeDateRowIdx]) {
+            const now = new Date();
+            rows[activeDateRowIdx].dateInput.value = toIsoDate(
+              now.getFullYear(),
+              now.getMonth(),
+              now.getDate()
+            );
+            updateDateDisplay(rows[activeDateRowIdx]);
+            saveTableData();
+          }
+          closeDatePicker();
+        });
+
+        dpClearBtn.addEventListener('click', function () {
+          if (activeDateRowIdx !== null && rows[activeDateRowIdx]) {
+            rows[activeDateRowIdx].dateInput.value = '';
+            updateDateDisplay(rows[activeDateRowIdx]);
+            saveTableData();
+          }
+          closeDatePicker();
+        });
+
+        document.addEventListener('click', function () {
+          if (!datePopover.classList.contains('hidden')) {
+            closeDatePicker();
+          }
+        });
+
+        document.addEventListener('keydown', function (e) {
+          if (e.key === 'Escape' && !datePopover.classList.contains('hidden')) {
+            closeDatePicker();
+          }
+        });
+
+        btnExport.addEventListener('click', exportToExcel);
+        btnExportPdf.addEventListener('click', exportToPdf);
+        btnClear.addEventListener('click', clearTableData);
+
+        function initApp() {
+          buildTable();
+          loadTableData();
+        }
+
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', initApp);
+        } else {
+          initApp();
+        }
+      })();
+    </script>
+  </body>
+</html>
