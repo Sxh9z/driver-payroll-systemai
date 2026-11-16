@@ -1505,9 +1505,14 @@
             const tableHeight = Math.max(tableEl.scrollHeight, tableEl.offsetHeight, 1);
             const maxCanvasPixels = 10000000;
             const safeScale = Math.min(2, Math.sqrt(maxCanvasPixels / (tableWidth * tableHeight)));
+            const captureScale = Math.max(0.5, safeScale);
 
             const canvas = await window.html2canvas(tableEl, {
-              scale: Math.max(1, safeScale),
+              scale: captureScale,
+              width: tableWidth,
+              height: tableHeight,
+              windowWidth: Math.max(document.documentElement.clientWidth, tableWidth),
+              windowHeight: Math.max(document.documentElement.clientHeight, tableHeight),
               useCORS: true,
               backgroundColor: '#ffffff',
               scrollX: 0,
@@ -1520,13 +1525,20 @@
                 const wrapper = clonedTable.parentElement;
                 if (wrapper) {
                   wrapper.style.overflow = 'visible';
-                  wrapper.style.width = 'max-content';
+                  wrapper.style.width = tableWidth + 'px';
+                  wrapper.style.maxWidth = 'none';
+                  wrapper.style.display = 'block';
                 }
 
                 // تثبيت حدود الخلايا الداكنة الواضحة داخل نسخة الـ PDF
                 clonedTable.style.borderCollapse = 'collapse';
                 clonedTable.style.tableLayout = 'fixed';
-                clonedTable.style.width = '100%';
+                clonedTable.style.width = tableWidth + 'px';
+                clonedTable.style.minWidth = tableWidth + 'px';
+                clonedTable.style.maxWidth = 'none';
+                clonedTable.style.display = 'table';
+                clonedTable.style.visibility = 'visible';
+                clonedTable.style.opacity = '1';
                 clonedTable.style.fontFamily = '"Tajawal", Arial, sans-serif';
 
                 // منع تداخل خلفية أي صف <tr> مع خلايا rowspan (في الرأس والجسم)
@@ -1601,6 +1613,10 @@
 
             if (!canvas.width || !canvas.height) {
               throw new Error('تعذر إنشاء صورة الجدول؛ حاول إعادة التصدير.');
+            }
+            const ctx = canvas.getContext('2d');
+            if (!ctx || ctx.getImageData(0, 0, Math.min(8, canvas.width), Math.min(8, canvas.height)).data.every((v, idx) => idx % 4 === 3 || v > 248)) {
+              throw new Error('تم التقاط صفحة فارغة بدل الجدول. أعد المحاولة بعد تحديث الصفحة.');
             }
             // JPEG أكثر تحمّلًا للصور الكبيرة ويمنع أخطاء تحليل PNG داخل jsPDF
             const imgData = canvas.toDataURL('image/jpeg', 0.92);
