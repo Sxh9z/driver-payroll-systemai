@@ -110,10 +110,13 @@
                 وقت الحضور والانصراف
               </th>
               <th rowspan="2" scope="col" class="bg-slate-800 text-white py-3 px-2 font-bold min-w-[100px] align-middle">
-                عدد الطلبات
+                الطلبات
               </th>
               <th rowspan="2" scope="col" class="bg-slate-800 text-white py-3 px-2 font-bold min-w-[100px] align-middle">
                 المرتجعات
+              </th>
+              <th rowspan="2" scope="col" class="bg-slate-800 text-white py-3 px-2 font-bold min-w-[110px] align-middle">
+                إجمالي الطلبات
               </th>
               <th rowspan="2" scope="col" class="bg-slate-800 text-white py-3 px-2 font-bold min-w-[85px] align-middle">
                 الفائض
@@ -570,6 +573,7 @@
           let totalAmount = 0;
           let totalOrders = 0;
           let totalReturns = 0;
+          let totalCountedOrders = 0;
           let totalSurplus = 0;
 
           for (let i = 0; i < DAYS_COUNT; i++) {
@@ -582,7 +586,9 @@
             if (r.ordersInput.value !== '' && Number.isFinite(ordersVal)) {
               totalOrders += ordersVal;
             }
-            totalReturns += Number(r.returnsInput.value) || 0;
+            const returnsValue = Number(r.returnsInput.value) || 0;
+            totalReturns += returnsValue;
+            totalCountedOrders += (r.ordersInput.value === '' ? 0 : ordersVal || 0) + returnsValue;
             totalSurplus += Number(r.surplusInput.value) || 0;
           }
 
@@ -591,6 +597,7 @@
           else document.getElementById('total-amount').textContent = totalAmount;
           document.getElementById('total-orders').textContent = totalOrders;
           document.getElementById('total-returns').textContent = totalReturns;
+          document.getElementById('total-counted-orders').textContent = totalCountedOrders;
           document.getElementById('total-surplus').textContent = totalSurplus;
         }
 
@@ -1046,6 +1053,12 @@
           returnsTotalTd.textContent = '0';
           totalTr.appendChild(returnsTotalTd);
 
+          const countedOrdersTotalTd = document.createElement('td');
+          countedOrdersTotalTd.id = 'total-counted-orders';
+          countedOrdersTotalTd.className = 'py-2.5 px-2 bg-yellow-200 text-slate-900 tabular-nums align-middle';
+          countedOrdersTotalTd.textContent = '0';
+          totalTr.appendChild(countedOrdersTotalTd);
+
           const surplusTotalTd = document.createElement('td');
           surplusTotalTd.id = 'total-surplus';
           surplusTotalTd.className = 'py-2.5 px-2 bg-yellow-200 text-slate-900 tabular-nums align-middle';
@@ -1189,6 +1202,7 @@
             { width: 16 },
             { width: 14 },
             { width: 14 },
+            { width: 16 },
             { width: 12 },
           ];
 
@@ -1201,13 +1215,14 @@
             'التاريخ',
             'وقت الحضور والانصراف',
             '',
-            'عدد الطلبات',
+            'الطلبات',
             'المرتجعات',
+            'إجمالي الطلبات',
             'الفائض',
           ];
 
           // الصف 2: الصف الفرعي لوقت الحضور والانصراف
-          worksheet.getRow(2).values = ['', '', '', '', '', 'من', 'إلى', '', '', ''];
+          worksheet.getRow(2).values = ['', '', '', '', '', 'من', 'إلى', '', '', '', ''];
 
           // الصفوف 3 إلى 9: أيام الأسبوع السبعة
           for (let i = 0; i < DAYS_COUNT; i++) {
@@ -1222,6 +1237,7 @@
                 '',
                 dateText,
                 'غياب',
+                '',
                 '',
                 '',
                 '',
@@ -1242,6 +1258,7 @@
                 formatTimeForExport(r.to),
                 ordersNum,
                 returnsNum,
+                ordersNum + returnsNum,
                 surplusNum,
               ];
             }
@@ -1258,6 +1275,7 @@
             '',
             Number(document.getElementById('total-orders').textContent) || 0,
             Number(document.getElementById('total-returns').textContent) || 0,
+            Number(document.getElementById('total-counted-orders').textContent) || 0,
             Number(document.getElementById('total-surplus').textContent) || 0,
           ];
 
@@ -1271,6 +1289,7 @@
           worksheet.mergeCells('H1:H2');
           worksheet.mergeCells('I1:I2');
           worksheet.mergeCells('J1:J2');
+          worksheet.mergeCells('K1:K2');
           worksheet.mergeCells('A3:A10');
           worksheet.mergeCells('B3:B10');
 
@@ -1279,7 +1298,7 @@
             if (rows[i].absentCheckbox.checked) {
               const excelRow = i + 3;
               worksheet.mergeCells('C' + excelRow + ':D' + excelRow);
-              worksheet.mergeCells('F' + excelRow + ':J' + excelRow);
+              worksheet.mergeCells('F' + excelRow + ':K' + excelRow);
             }
           }
 
