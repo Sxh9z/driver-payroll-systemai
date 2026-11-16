@@ -422,7 +422,7 @@
                 if (saved.orders !== undefined && saved.orders !== null) {
                   r.ordersInput.value = String(saved.orders);
                 }
-                if (saved.returns !== undefined && saved.returns !== null) r.returnsInput.value = String(saved.returns);
+                if (saved.returns !== undefined && saved.returns !== null) r.returnsInput.value = String(saved.returns === '' ? 0 : saved.returns);
                 if (saved.absent === true) {
                   r.absentCheckbox.checked = true;
                   applyAbsentState(i, true, false);
@@ -467,7 +467,7 @@
             r.to.minInput.value = '00';
             r.to.periodSelect.value = 'صباحًا';
             r.ordersInput.value = '';
-            r.returnsInput.value = '';
+            r.returnsInput.value = '0';
             updateSurplusForRow(i);
           }
 
@@ -877,6 +877,7 @@
             returnsInput.type = 'number';
             returnsInput.min = '0';
             returnsInput.step = '1';
+            returnsInput.value = '0';
             returnsInput.placeholder = '0';
             returnsInput.setAttribute('aria-label', 'المرتجعات - اليوم ' + (i + 1));
             returnsInput.className = 'w-full py-1.5 px-2 text-center text-sm tabular-nums border border-gray-300 rounded bg-white focus:outline-none focus:border-blue-600';
