@@ -422,7 +422,10 @@
                 if (saved.orders !== undefined && saved.orders !== null) {
                   r.ordersInput.value = String(saved.orders);
                 }
-                if (saved.returns !== undefined && saved.returns !== null) r.returnsInput.value = String(saved.returns === '' ? 0 : saved.returns);
+                if (saved.returns !== undefined && saved.returns !== null) {
+                  r.returnsInput.value = String(saved.returns === '' ? 0 : saved.returns);
+                  r.returnsInput.style.color = Number(r.returnsInput.value) === 0 ? 'transparent' : '';
+                }
                 if (saved.absent === true) {
                   r.absentCheckbox.checked = true;
                   applyAbsentState(i, true, false);
@@ -879,6 +882,7 @@
             returnsInput.step = '1';
             returnsInput.value = '0';
             returnsInput.placeholder = '0';
+            returnsInput.style.color = 'transparent';
             returnsInput.setAttribute('aria-label', 'المرتجعات - اليوم ' + (i + 1));
             returnsInput.className = 'w-full py-1.5 px-2 text-center text-sm tabular-nums border border-gray-300 rounded bg-white focus:outline-none focus:border-blue-600';
             returnsTd.appendChild(returnsInput);
@@ -966,6 +970,7 @@
             });
 
             returnsInput.addEventListener('input', function () {
+              returnsInput.style.color = Number(returnsInput.value) === 0 ? 'transparent' : '';
               updateSurplusForRow(i);
               applyShiftAmount(i);
               updateTotals();
@@ -1477,7 +1482,7 @@
               const dateText = escapePdfHtml(formatArabicDate(r.dateInput.value));
               if (r.absentCheckbox.checked) {
                 bodyRows += '<tr class="absent-row">';
-                if (i === 0) bodyRows += '<td class="merged-person" rowspan="8">' + escapePdfHtml(branchVal) + '</td><td class="merged-person" rowspan="8">' + escapePdfHtml(nameVal) + '</td>';
+                if (i === 0) bodyRows += '<td class="merged-person" rowspan="7">' + escapePdfHtml(branchVal) + '</td><td class="merged-person" rowspan="7">' + escapePdfHtml(nameVal) + '</td>';
                 bodyRows += '<td colspan="2" class="absent-cell">غياب</td><td>' + dateText + '</td><td colspan="6" class="absent-cell">غياب</td></tr>';
               } else {
                 const orders = r.ordersInput.value === '' ? 0 : Number(r.ordersInput.value) || 0;
@@ -1487,12 +1492,12 @@
                 const from = escapePdfHtml(formatTimeForExport(r.from));
                 const to = escapePdfHtml(formatTimeForExport(r.to));
                 bodyRows += '<tr>';
-                if (i === 0) bodyRows += '<td class="merged-person" rowspan="8">' + escapePdfHtml(branchVal) + '</td><td class="merged-person" rowspan="8">' + escapePdfHtml(nameVal) + '</td>';
+                if (i === 0) bodyRows += '<td class="merged-person" rowspan="7">' + escapePdfHtml(branchVal) + '</td><td class="merged-person" rowspan="7">' + escapePdfHtml(nameVal) + '</td>';
                 bodyRows += '<td>' + escapePdfHtml(r.shiftSelect.value) + '</td><td>' + amount + '</td><td>' + dateText + '</td><td>' + from + '</td><td>' + to + '</td><td>' + orders + '</td><td>' + returns + '</td><td class="calculated">' + (orders + returns) + '</td><td class="calculated">' + surplus + '</td></tr>';
               }
             }
 
-            bodyRows += '<tr class="weekly-total"><td></td><td class="total-value">' + weeklyAmount + '</td><td class="total-label">الإجمالي الأسبوعي</td><td></td><td></td><td class="total-value">' + weeklyOrders + '</td><td class="total-value">' + weeklyReturns + '</td><td class="total-value">' + weeklyCounted + '</td><td class="total-value">' + weeklySurplus + '</td></tr>';
+            bodyRows += '<tr class="weekly-total"><td colspan="3" class="total-label">الإجمالي الأسبوعي</td><td class="total-value">' + weeklyAmount + '</td><td></td><td></td><td></td><td class="total-value">' + weeklyOrders + '</td><td class="total-value">' + weeklyReturns + '</td><td class="total-value">' + weeklyCounted + '</td><td class="total-value">' + weeklySurplus + '</td></tr>';
 
             const html = `<!doctype html>
 <html lang="ar" dir="rtl">
