@@ -1471,7 +1471,7 @@
             const weeklyReturns = Number(document.getElementById('total-returns').textContent) || 0;
             const weeklyCounted = Number(document.getElementById('total-counted-orders').textContent) || 0;
             const weeklySurplus = Number(document.getElementById('total-surplus').textContent) || 0;
-            const columnWidths = [12, 15, 10, 11, 14, 12, 12, 10, 14, 14, 10];
+            const columnWidths = [12, 15, 10, 11, 13, 11, 11, 9, 13, 19, 10];
             const totalWidth = columnWidths.reduce((a, b) => a + b, 0);
             const colgroup = columnWidths.map(w => '<col style="width:' + (w / totalWidth * 100).toFixed(4) + '%">').join('');
 
@@ -1524,6 +1524,7 @@
   .weekly-total .total-label { color: #334155; }
   .weekly-total .weekly-highlight { background: #fef08a !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   thead th:nth-child(9) { white-space: nowrap; overflow-wrap: normal; }
+   thead th.total-orders-header { white-space: normal; word-break: keep-all; overflow-wrap: normal; font-size: 11pt; line-height: 1.25; padding-left: 0.5mm; padding-right: 0.5mm; }
   @media screen { body { padding: 8px; } .sheet { max-width: 1100px; margin: 0 auto; } }
   @media print { html, body { width: 100%; } .sheet { width: 100%; } }
 </style>
@@ -1534,7 +1535,7 @@
 <colgroup>${colgroup}</colgroup>
 <thead>
 <tr>
-<th rowspan="2">الفرع</th><th rowspan="2">الاسم</th><th rowspan="2">الدوام</th><th rowspan="2">المبلغ</th><th rowspan="2">التاريخ</th><th colspan="2">وقت الحضور والانصراف</th><th rowspan="2">الطلبات</th><th rowspan="2">المرتجعات</th><th rowspan="2">إجمالي الطلبات</th><th rowspan="2">الفائض</th>
+<th rowspan="2">الفرع</th><th rowspan="2">الاسم</th><th rowspan="2">الدوام</th><th rowspan="2">المبلغ</th><th rowspan="2">التاريخ</th><th colspan="2">وقت الحضور والانصراف</th><th rowspan="2">الطلبات</th><th rowspan="2">المرتجعات</th><th rowspan="2" class="total-orders-header">إجمالي الطلبات</th><th rowspan="2">الفائض</th>
 </tr>
 <tr><th>من</th><th>إلى</th></tr>
 </thead>
