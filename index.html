@@ -424,7 +424,7 @@
                 }
                 if (saved.returns !== undefined && saved.returns !== null) {
                   r.returnsInput.value = String(saved.returns === '' ? 0 : saved.returns);
-                  r.returnsInput.style.color = Number(r.returnsInput.value) === 0 ? 'transparent' : '';
+                  r.returnsInput.style.color = Number(r.returnsInput.value) === 0 ? '#9ca3af' : '';
                 }
                 if (saved.absent === true) {
                   r.absentCheckbox.checked = true;
@@ -882,7 +882,7 @@
             returnsInput.step = '1';
             returnsInput.value = '0';
             returnsInput.placeholder = '0';
-            returnsInput.style.color = 'transparent';
+            returnsInput.style.color = '#9ca3af';
             returnsInput.setAttribute('aria-label', 'المرتجعات - اليوم ' + (i + 1));
             returnsInput.className = 'w-full py-1.5 px-2 text-center text-sm tabular-nums border border-gray-300 rounded bg-white focus:outline-none focus:border-blue-600';
             returnsTd.appendChild(returnsInput);
@@ -890,7 +890,7 @@
 
             // 9. إجمالي الطلبات (الطلبات + المرتجعات فقط، للصف نفسه)
             const countedOrdersTd = document.createElement('td');
-            countedOrdersTd.className = 'p-1.5 align-middle bg-yellow-50 text-slate-900 font-semibold tabular-nums';
+            countedOrdersTd.className = 'p-1.5 align-middle bg-white text-slate-900 font-semibold tabular-nums';
             const countedOrdersValue = document.createElement('span');
             countedOrdersValue.textContent = '0';
             countedOrdersTd.appendChild(countedOrdersValue);
@@ -970,7 +970,7 @@
             });
 
             returnsInput.addEventListener('input', function () {
-              returnsInput.style.color = Number(returnsInput.value) === 0 ? 'transparent' : '';
+              returnsInput.style.color = Number(returnsInput.value) === 0 ? '#9ca3af' : '';
               updateSurplusForRow(i);
               applyShiftAmount(i);
               updateTotals();
@@ -1000,7 +1000,7 @@
           // خلية إجمالي المبلغ (bg-yellow-200)
           const amountTotalTd = document.createElement('td');
           amountTotalTd.id = 'total-amount';
-          amountTotalTd.className = 'py-2.5 px-2 bg-yellow-200 text-slate-900 tabular-nums align-middle';
+          amountTotalTd.className = 'py-2.5 px-2 bg-white text-slate-900 tabular-nums align-middle';
           const amountTotalWrap = document.createElement('div');
           amountTotalWrap.className = 'flex flex-col items-center justify-center gap-1';
           const amountTotalValue = document.createElement('span');
@@ -1063,26 +1063,26 @@
           // خلية إجمالي الطلبات المستلمة (bg-yellow-200)
           const ordersTotalTd = document.createElement('td');
           ordersTotalTd.id = 'total-orders';
-          ordersTotalTd.className = 'py-2.5 px-2 bg-yellow-200 text-slate-900 tabular-nums align-middle';
+          ordersTotalTd.className = 'py-2.5 px-2 bg-white text-slate-900 tabular-nums align-middle';
           ordersTotalTd.textContent = '0';
           totalTr.appendChild(ordersTotalTd);
 
           // خلية إجمالي المرتجعات (bg-yellow-200)
           const returnsTotalTd = document.createElement('td');
           returnsTotalTd.id = 'total-returns';
-          returnsTotalTd.className = 'py-2.5 px-2 bg-yellow-200 text-slate-900 tabular-nums align-middle';
+          returnsTotalTd.className = 'py-2.5 px-2 bg-white text-slate-900 tabular-nums align-middle';
           returnsTotalTd.textContent = '0';
           totalTr.appendChild(returnsTotalTd);
 
           const countedOrdersTotalTd = document.createElement('td');
           countedOrdersTotalTd.id = 'total-counted-orders';
-          countedOrdersTotalTd.className = 'py-2.5 px-2 bg-yellow-200 text-slate-900 tabular-nums align-middle';
+          countedOrdersTotalTd.className = 'py-2.5 px-2 bg-white text-slate-900 tabular-nums align-middle';
           countedOrdersTotalTd.textContent = '0';
           totalTr.appendChild(countedOrdersTotalTd);
 
           const surplusTotalTd = document.createElement('td');
           surplusTotalTd.id = 'total-surplus';
-          surplusTotalTd.className = 'py-2.5 px-2 bg-yellow-200 text-slate-900 tabular-nums align-middle';
+          surplusTotalTd.className = 'py-2.5 px-2 bg-white text-slate-900 tabular-nums align-middle';
           surplusTotalTd.textContent = '0';
           totalTr.appendChild(surplusTotalTd);
 
@@ -1497,7 +1497,7 @@
               }
             }
 
-            bodyRows += '<tr class="weekly-total"><td colspan="3" class="total-label">الإجمالي الأسبوعي</td><td class="total-value">' + weeklyAmount + '</td><td></td><td></td><td></td><td class="total-value">' + weeklyOrders + '</td><td class="total-value">' + weeklyReturns + '</td><td class="total-value">' + weeklyCounted + '</td><td class="total-value">' + weeklySurplus + '</td></tr>';
+            bodyRows += '<tr class="weekly-total"><td></td><td></td><td></td><td class="total-value">' + weeklyAmount + '</td><td></td><td></td><td></td><td class="total-value">' + weeklyOrders + '</td><td class="total-value">' + weeklyReturns + '</td><td class="total-value">' + weeklyCounted + '</td><td class="total-value">' + weeklySurplus + '</td></tr>';
 
             const html = `<!doctype html>
 <html lang="ar" dir="rtl">
@@ -1518,7 +1518,7 @@
   thead tr:nth-child(2) th { padding-top: 3mm; padding-bottom: 3mm; }
   tbody td { font-size: 12pt; font-weight: 400; padding: 3.2mm 1mm; line-height: 1.2; }
   .merged-person { font-weight: 500; background: #fff; }
-  .calculated, .total-value { background: #fef08a !important; font-weight: 700; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .calculated, .total-value { background: #fff !important; font-weight: 700; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .absent-cell { background: #fca5a5 !important; color: #7f1d1d; font-weight: 700; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .weekly-total td { font-weight: 700; padding-top: 3.5mm; padding-bottom: 3.5mm; }
   .weekly-total .total-label { color: #334155; }
