@@ -1471,7 +1471,7 @@
             const weeklyReturns = Number(document.getElementById('total-returns').textContent) || 0;
             const weeklyCounted = Number(document.getElementById('total-counted-orders').textContent) || 0;
             const weeklySurplus = Number(document.getElementById('total-surplus').textContent) || 0;
-            const columnWidths = [14, 16, 10, 11, 16, 13, 13, 10, 10, 14, 10];
+            const columnWidths = [12, 15, 10, 11, 14, 12, 12, 10, 14, 14, 10];
             const totalWidth = columnWidths.reduce((a, b) => a + b, 0);
             const colgroup = columnWidths.map(w => '<col style="width:' + (w / totalWidth * 100).toFixed(4) + '%">').join('');
 
@@ -1497,7 +1497,7 @@
               }
             }
 
-            bodyRows += '<tr class="weekly-total"><td></td><td></td><td></td><td class="total-value">' + weeklyAmount + '</td><td></td><td></td><td></td><td class="total-value">' + weeklyOrders + '</td><td class="total-value">' + weeklyReturns + '</td><td class="total-value">' + weeklyCounted + '</td><td class="total-value">' + weeklySurplus + '</td></tr>';
+            bodyRows += '<tr class="weekly-total"><td></td><td></td><td></td><td class="total-value weekly-highlight">' + weeklyAmount + '</td><td></td><td></td><td></td><td class="total-value weekly-highlight">' + weeklyOrders + '</td><td class="total-value weekly-highlight">' + weeklyReturns + '</td><td class="total-value weekly-highlight">' + weeklyCounted + '</td><td class="total-value weekly-highlight">' + weeklySurplus + '</td></tr>';
 
             const html = `<!doctype html>
 <html lang="ar" dir="rtl">
@@ -1522,6 +1522,8 @@
   .absent-cell { background: #fca5a5 !important; color: #7f1d1d; font-weight: 700; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .weekly-total td { font-weight: 700; padding-top: 3.5mm; padding-bottom: 3.5mm; }
   .weekly-total .total-label { color: #334155; }
+  .weekly-total .weekly-highlight { background: #fef08a !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  thead th:nth-child(9) { white-space: nowrap; overflow-wrap: normal; }
   @media screen { body { padding: 8px; } .sheet { max-width: 1100px; margin: 0 auto; } }
   @media print { html, body { width: 100%; } .sheet { width: 100%; } }
 </style>
