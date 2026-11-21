@@ -1198,6 +1198,16 @@
           return h + ':' + m + ' ' + p;
         }
 
+        function formatTimeForPdf(ctrl) {
+          const h = ctrl.hourInput.value.trim();
+          if (!h) return '';
+          const m = (ctrl.minInput.value.trim() || '00').padStart(2, '0');
+          const p = ctrl.periodSelect.value;
+          return '<span style="display:inline-flex;flex-direction:row-reverse;align-items:center;gap:3px;direction:ltr;white-space:nowrap;">' +
+            '<span dir="ltr">' + escapePdfHtml(h + ':' + m) + '</span>' +
+            '<span dir="rtl">' + escapePdfHtml(p) + '</span></span>';
+        }
+
         async function exportToExcel() {
           if (typeof ExcelJS === 'undefined' || typeof saveAs === 'undefined') {
             statusMsg.textContent =
@@ -1489,11 +1499,11 @@
                 const returns = r.returnsInput.value === '' ? 0 : Number(r.returnsInput.value) || 0;
                 const amount = Number(r.amountInput.value) || 0;
                 const surplus = Number(r.surplusInput.value) || 0;
-                const from = escapePdfHtml(formatTimeForExport(r.from));
-                const to = escapePdfHtml(formatTimeForExport(r.to));
+                const from = formatTimeForPdf(r.from);
+                const to = formatTimeForPdf(r.to);
                 bodyRows += '<tr>';
                 if (i === 0) bodyRows += '<td class="merged-person" rowspan="8">' + escapePdfHtml(branchVal) + '</td><td class="merged-person" rowspan="8">' + escapePdfHtml(nameVal) + '</td>';
-                bodyRows += '<td>' + escapePdfHtml(r.shiftSelect.value) + '</td><td>' + amount + '</td><td>' + dateText + '</td><td><span dir="ltr" style="unicode-bidi:isolate">' + from + '</span></td><td><span dir="ltr" style="unicode-bidi:isolate">' + to + '</span></td><td>' + orders + '</td><td>' + returns + '</td><td class="calculated">' + (orders + returns) + '</td><td class="calculated">' + surplus + '</td></tr>';
+                bodyRows += '<td>' + escapePdfHtml(r.shiftSelect.value) + '</td><td>' + amount + '</td><td>' + dateText + '</td><td>' + from + '</td><td>' + to + '</td><td>' + orders + '</td><td>' + returns + '</td><td class="calculated">' + (orders + returns) + '</td><td class="calculated">' + surplus + '</td></tr>';
               }
             }
 
