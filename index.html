@@ -1195,7 +1195,7 @@
           const m = (ctrl.minInput.value.trim() || '00').padStart(2, '0');
           const p = ctrl.periodSelect.value;
           if (!h) return '';
-          return p + ' ' + h + ':' + m;
+          return h + ':' + m + ' ' + p;
         }
 
         async function exportToExcel() {
@@ -1268,7 +1268,7 @@
           // الصفوف 3 إلى 9: أيام الأسبوع السبعة
           for (let i = 0; i < DAYS_COUNT; i++) {
             const r = rows[i];
-            const dateText = '\u2066' + formatArabicDate(r.dateInput.value) + '\u2069';
+            const dateText = formatArabicDate(r.dateInput.value);
 
             if (r.absentCheckbox.checked) {
               worksheet.getRow(i + 3).values = [
@@ -1295,8 +1295,8 @@
                 r.shiftSelect.value,
                 amountNum,
                 dateText,
-                '\u2066' + formatTimeForExport(r.from) + '\u2069',
-                '\u2066' + formatTimeForExport(r.to) + '\u2069',
+                formatTimeForExport(r.from),
+                formatTimeForExport(r.to),
                 ordersNum,
                 returnsNum,
                 ordersNum + returnsNum,
@@ -1389,7 +1389,7 @@
             for (let colNum = 1; colNum <= 11; colNum++) {
               const cell = row.getCell(colNum);
               cell.border = thinGrayBorder;
-              cell.alignment = { horizontal: 'center', vertical: 'middle' };
+              cell.alignment = { horizontal: 'center', vertical: 'middle', readingOrder: 'rtl' };
 
               if (rowNum === 1 || rowNum === 2) {
                 cell.fill = headerFill;
