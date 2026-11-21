@@ -1195,7 +1195,7 @@
           const m = (ctrl.minInput.value.trim() || '00').padStart(2, '0');
           const p = ctrl.periodSelect.value;
           if (!h) return '';
-          return h + ':' + m + ' ' + p;
+          return p + ' ' + h + ':' + m;
         }
 
         async function exportToExcel() {
@@ -1268,7 +1268,7 @@
           // الصفوف 3 إلى 9: أيام الأسبوع السبعة
           for (let i = 0; i < DAYS_COUNT; i++) {
             const r = rows[i];
-            const dateText = formatArabicDate(r.dateInput.value);
+            const dateText = '\u2066' + formatArabicDate(r.dateInput.value) + '\u2069';
 
             if (r.absentCheckbox.checked) {
               worksheet.getRow(i + 3).values = [
@@ -1295,8 +1295,8 @@
                 r.shiftSelect.value,
                 amountNum,
                 dateText,
-                formatTimeForExport(r.from),
-                formatTimeForExport(r.to),
+                '\u2066' + formatTimeForExport(r.from) + '\u2069',
+                '\u2066' + formatTimeForExport(r.to) + '\u2069',
                 ordersNum,
                 returnsNum,
                 ordersNum + returnsNum,
@@ -1311,7 +1311,7 @@
             '',
             '',
             Number((document.getElementById('total-amount-value') || document.getElementById('total-amount')).textContent) || 0,
-            'الإجمالي الأسبوعي',
+            '',
             '',
             '',
             Number(document.getElementById('total-orders').textContent) || 0,
@@ -1482,7 +1482,7 @@
               const dateText = escapePdfHtml(formatArabicDate(r.dateInput.value));
               if (r.absentCheckbox.checked) {
                 bodyRows += '<tr class="absent-row">';
-                if (i === 0) bodyRows += '<td class="merged-person" rowspan="7">' + escapePdfHtml(branchVal) + '</td><td class="merged-person" rowspan="7">' + escapePdfHtml(nameVal) + '</td>';
+                if (i === 0) bodyRows += '<td class="merged-person" rowspan="8">' + escapePdfHtml(branchVal) + '</td><td class="merged-person" rowspan="8">' + escapePdfHtml(nameVal) + '</td>';
                 bodyRows += '<td colspan="2" class="absent-cell">غياب</td><td>' + dateText + '</td><td colspan="6" class="absent-cell">غياب</td></tr>';
               } else {
                 const orders = r.ordersInput.value === '' ? 0 : Number(r.ordersInput.value) || 0;
@@ -1492,12 +1492,12 @@
                 const from = escapePdfHtml(formatTimeForExport(r.from));
                 const to = escapePdfHtml(formatTimeForExport(r.to));
                 bodyRows += '<tr>';
-                if (i === 0) bodyRows += '<td class="merged-person" rowspan="7">' + escapePdfHtml(branchVal) + '</td><td class="merged-person" rowspan="7">' + escapePdfHtml(nameVal) + '</td>';
-                bodyRows += '<td>' + escapePdfHtml(r.shiftSelect.value) + '</td><td>' + amount + '</td><td>' + dateText + '</td><td>' + from + '</td><td>' + to + '</td><td>' + orders + '</td><td>' + returns + '</td><td class="calculated">' + (orders + returns) + '</td><td class="calculated">' + surplus + '</td></tr>';
+                if (i === 0) bodyRows += '<td class="merged-person" rowspan="8">' + escapePdfHtml(branchVal) + '</td><td class="merged-person" rowspan="8">' + escapePdfHtml(nameVal) + '</td>';
+                bodyRows += '<td>' + escapePdfHtml(r.shiftSelect.value) + '</td><td>' + amount + '</td><td>' + dateText + '</td><td><span dir="ltr" style="unicode-bidi:isolate">' + from + '</span></td><td><span dir="ltr" style="unicode-bidi:isolate">' + to + '</span></td><td>' + orders + '</td><td>' + returns + '</td><td class="calculated">' + (orders + returns) + '</td><td class="calculated">' + surplus + '</td></tr>';
               }
             }
 
-            bodyRows += '<tr class="weekly-total"><td></td><td></td><td></td><td class="total-value weekly-highlight">' + weeklyAmount + '</td><td></td><td></td><td></td><td class="total-value weekly-highlight">' + weeklyOrders + '</td><td class="total-value weekly-highlight">' + weeklyReturns + '</td><td class="total-value weekly-highlight">' + weeklyCounted + '</td><td class="total-value weekly-highlight">' + weeklySurplus + '</td></tr>';
+            bodyRows += '<tr class="weekly-total"><td class="total-value weekly-highlight">' + weeklyAmount + '</td><td></td><td></td><td></td><td class="total-value weekly-highlight">' + weeklyOrders + '</td><td class="total-value weekly-highlight">' + weeklyReturns + '</td><td class="total-value weekly-highlight">' + weeklyCounted + '</td><td class="total-value weekly-highlight">' + weeklySurplus + '</td></tr>';
 
             const html = `<!doctype html>
 <html lang="ar" dir="rtl">
